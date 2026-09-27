@@ -1,0 +1,29 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Health check document
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // User profile
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Personal Cloud Stored Files
+      match /files/{fileId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // PDF Operations History Log
+      match /operations/{opId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+  }
+}

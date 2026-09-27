@@ -1,0 +1,7 @@
+{
+  "name": "OmniPDF Studio - Free AI PDF Suite",
+  "description": "All-in-one 100% free PDF toolkit: merge, split, convert without watermarks, OCR text extraction, visual editor, page organizer, and AI document intelligence.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

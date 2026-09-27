@@ -1,0 +1,64 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User account profile details",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "format": "email", "description": "User email address" },
+        "displayName": { "type": "string", "description": "Display name of the user", "maxLength": 100 },
+        "createdAt": { "type": "string", "description": "Account creation timestamp" }
+      },
+      "required": ["uid", "email"]
+    },
+    "UserFile": {
+      "title": "UserFile",
+      "description": "Stored PDF document in personal cloud storage",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique file ID" },
+        "userId": { "type": "string", "description": "Owner user UID" },
+        "name": { "type": "string", "description": "Filename", "maxLength": 255 },
+        "size": { "type": "number", "description": "Size in bytes" },
+        "pageCount": { "type": "number", "description": "Total pages in PDF" },
+        "dataBase64": { "type": "string", "description": "File base64 data" },
+        "textContent": { "type": "string", "description": "Extracted text content if available" },
+        "summary": { "type": "string", "description": "AI summary of file if analyzed" },
+        "createdAt": { "type": "string", "description": "Upload timestamp" },
+        "updatedAt": { "type": "string", "description": "Update timestamp" }
+      },
+      "required": ["id", "userId", "name", "size"]
+    },
+    "OperationLog": {
+      "title": "OperationLog",
+      "description": "Audit trail of PDF actions and AI tool operations",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Operation ID" },
+        "userId": { "type": "string", "description": "UID of the user who performed the operation" },
+        "toolId": { "type": "string", "description": "Tool identifier e.g. merge, split, ocr, ai-summarize" },
+        "toolName": { "type": "string", "description": "Display name of tool" },
+        "fileName": { "type": "string", "description": "Name of the target file" },
+        "status": { "type": "string", "enum": ["success", "failed", "processing"] },
+        "details": { "type": "string", "description": "Outcome details or summary of operation", "maxLength": 1000 },
+        "timestamp": { "type": "string", "description": "Operation timestamp" }
+      },
+      "required": ["id", "userId", "toolId", "toolName", "fileName", "status", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Stores user profile data"
+    },
+    "/users/{userId}/files/{fileId}": {
+      "schema": "UserFile",
+      "description": "Stores files saved in user personal cloud storage"
+    },
+    "/users/{userId}/operations/{opId}": {
+      "schema": "OperationLog",
+      "description": "Stores history log of PDF operations performed by the user"
+    }
+  }
+}
