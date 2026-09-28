@@ -74,14 +74,14 @@ export const HistoryModal: React.FC = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search history by file or tool..."
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
             />
           </div>
 
           <select
             value={filterTool}
             onChange={(e) => setFilterTool(e.target.value)}
-            className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500"
+            className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
           >
             <option value="all">All Tools</option>
             <option value="ocr">AI OCR</option>
@@ -91,7 +91,6 @@ export const HistoryModal: React.FC = () => {
             <option value="split">Split PDF</option>
             <option value="organize">Organize</option>
             <option value="compress">Compress</option>
-            <option value="vault">Cloud Vault</option>
           </select>
         </div>
 

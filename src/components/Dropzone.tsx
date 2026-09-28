@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Upload, FileUp, Sparkles, AlertCircle } from 'lucide-react';
+import { Upload, FileUp, Sparkles } from 'lucide-react';
 
 interface DropzoneProps {
   onFilesSelected: (files: File[]) => void;
@@ -54,12 +54,12 @@ export const Dropzone: React.FC<DropzoneProps> = ({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       onClick={() => inputRef.current?.click()}
-      className={`relative rounded-2xl border-2 border-dashed transition-all cursor-pointer p-8 sm:p-12 text-center group ${
+      className={`relative rounded-3xl border-2 border-dashed transition-all cursor-pointer p-8 sm:p-12 text-center group ${
         isDragging
-          ? 'border-rose-500 bg-rose-950/20 scale-[0.99]'
+          ? 'border-blue-500 bg-blue-950/30 scale-[0.99]'
           : isAi
-          ? 'border-rose-800/40 bg-slate-900/40 hover:border-rose-500/60 hover:bg-slate-900/70'
-          : 'border-slate-800 bg-slate-900/40 hover:border-slate-700 hover:bg-slate-900/70'
+          ? 'border-blue-800/40 bg-[#0b1222]/80 hover:border-blue-500/70 hover:bg-[#0e172f]'
+          : 'border-slate-800 bg-[#0b1222]/60 hover:border-blue-700/60 hover:bg-[#0e172f]'
       }`}
     >
       <input
@@ -73,23 +73,23 @@ export const Dropzone: React.FC<DropzoneProps> = ({
 
       <div className="flex flex-col items-center justify-center max-w-md mx-auto">
         <div
-          className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110 ${
+          className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110 shadow-lg ${
             isAi
-              ? 'bg-gradient-to-tr from-rose-500/20 to-purple-500/20 border border-rose-500/30 text-rose-400'
-              : 'bg-slate-800 border border-slate-700 text-slate-300'
+              ? 'bg-gradient-to-tr from-blue-600/30 to-cyan-500/20 border border-blue-500/30 text-cyan-300 shadow-blue-950/40'
+              : 'bg-slate-800/90 border border-slate-700 text-sky-300'
           }`}
         >
-          {isAi ? <Sparkles className="w-8 h-8" /> : <FileUp className="w-8 h-8" />}
+          {isAi ? <Sparkles className="w-8 h-8 text-cyan-400" /> : <FileUp className="w-8 h-8 text-sky-400" />}
         </div>
 
-        <h3 className="text-lg font-semibold text-white mb-1.5 group-hover:text-rose-400 transition-colors">
+        <h3 className="text-lg font-semibold text-white mb-1.5 group-hover:text-sky-300 transition-colors">
           {title}
         </h3>
         <p className="text-xs text-slate-400 mb-4 max-w-sm">{subtitle}</p>
 
         <button
           type="button"
-          className="px-5 py-2.5 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-950/40 transition-all flex items-center gap-2 group-hover:shadow-rose-900/50"
+          className="px-5 py-2.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-950/50 transition-all flex items-center gap-2 group-hover:shadow-blue-900/60 cursor-pointer"
         >
           <Upload className="w-4 h-4" />
           Choose File{multiple ? 's' : ''}
@@ -103,21 +103,21 @@ export const Dropzone: React.FC<DropzoneProps> = ({
             <span>Don't have a file?</span>
             <button
               onClick={() => onSelectSample('contract')}
-              className="text-rose-400 hover:underline font-medium"
+              className="text-sky-400 hover:text-cyan-300 hover:underline font-medium cursor-pointer"
             >
               Test Contract
             </button>
             <span>·</span>
             <button
               onClick={() => onSelectSample('invoice')}
-              className="text-rose-400 hover:underline font-medium"
+              className="text-sky-400 hover:text-cyan-300 hover:underline font-medium cursor-pointer"
             >
               Test Invoice
             </button>
             <span>·</span>
             <button
               onClick={() => onSelectSample('report')}
-              className="text-rose-400 hover:underline font-medium"
+              className="text-sky-400 hover:text-cyan-300 hover:underline font-medium cursor-pointer"
             >
               Test Paper
             </button>

@@ -29,15 +29,15 @@ interface AiSummarizeToolProps {
 }
 
 export const AiSummarizeTool: React.FC<AiSummarizeToolProps> = ({ onSelectSample }) => {
-  const { user, saveFileToCloud, logAction, setIsAuthModalOpen } = useAuth();
+  const { logAction } = useAuth();
   const [file, setFile] = useState<{ name: string; bytes: Uint8Array } | null>(null);
   const [docText, setDocText] = useState('');
   const [activeTab, setActiveTab] = useState<'summary' | 'entities' | 'topics' | 'insights' | 'sentiment'>('summary');
   const [result, setResult] = useState<DeepSummaryResult | null>(null);
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [cloudSaving, setCloudSaving] = useState(false);
-  const [savedSuccess, setSavedSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
 
   const handleFileSelected = async (files: File[]) => {
     if (files.length === 0) return;
@@ -46,19 +46,21 @@ export const AiSummarizeTool: React.FC<AiSummarizeToolProps> = ({ onSelectSample
     const bytes = new Uint8Array(buffer);
     setFile({ name: f.name, bytes });
     setResult(null);
-    setSavedSuccess(false);
+    setErrorMessage(null);
+    setDownloadSuccess(null);
 
     try {
       const { fullText } = await extractTextFromPDF(bytes);
       setDocText(fullText);
       generateAnalysis(fullText, f.name);
     } catch (err: any) {
-      alert(`Could not extract document: ${err.message}`);
+      setErrorMessage(`Could not extract document: ${err.message}`);
     }
   };
 
   const generateAnalysis = async (text: string, fileName: string) => {
     setIsSummarizing(true);
+    setErrorMessage(null);
     try {
       const data = await requestDeepSummary(text);
       setResult(data);
@@ -70,34 +72,10 @@ export const AiSummarizeTool: React.FC<AiSummarizeToolProps> = ({ onSelectSample
         `Generated summary, ${data.entities.length} entities, and ${data.sentiment.overall} sentiment analysis`
       );
     } catch (err: any) {
-      alert(`Analysis failed: ${err.message}`);
+      setErrorMessage(`Analysis failed: ${err.message}`);
       await logAction('ai-summarize', 'AI Summarize & Intelligence', fileName, 'failed', err.message);
     } finally {
       setIsSummarizing(false);
-    }
-  };
-
-  const handleSaveToCloud = async () => {
-    if (!file) return;
-    if (!user) {
-      setIsAuthModalOpen(true);
-      return;
-    }
-    setCloudSaving(true);
-    try {
-      await saveFileToCloud({
-        name: file.name,
-        bytes: file.bytes,
-        pageCount: 1,
-        textContent: docText,
-        summary: result?.summary.slice(0, 300) || '',
-      });
-      setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 3500);
-    } catch (err: any) {
-      alert(`Cloud save failed: ${err.message}`);
-    } finally {
-      setCloudSaving(false);
     }
   };
 
@@ -134,10 +112,13 @@ Analysis: ${result.sentiment.analysis}
 Key Tonal Phrases:
 ${result.sentiment.keyPhrases.map((p) => `  * "${p}"`).join('\n')}
 `;
+      const outName = `${file.name.replace('.pdf', '')}_AI_Intelligence_Report.pdf`;
       const bytes = await convertTextToPDF(pdfText, `Intelligence Dossier: ${file.name}`);
-      downloadFile(bytes, `${file.name.replace('.pdf', '')}_AI_Intelligence_Report.pdf`);
+      downloadFile(bytes, outName);
+      setDownloadSuccess(`Downloaded report: ${outName}`);
+      setTimeout(() => setDownloadSuccess(null), 6000);
     } catch (err: any) {
-      alert(`PDF export failed: ${err.message}`);
+      setErrorMessage(`PDF export failed: ${err.message}`);
     }
   };
 
@@ -150,7 +131,7 @@ ${result.sentiment.keyPhrases.map((p) => `  * "${p}"`).join('\n')}
       case 'urgent':
         return 'text-amber-400 bg-amber-500/10 border-amber-500/30';
       case 'negative':
-        return 'text-rose-400 bg-rose-500/10 border-rose-500/30';
+        return 'text-red-400 bg-red-500/10 border-red-500/30';
       default:
         return 'text-blue-400 bg-blue-500/10 border-blue-500/30';
     }
@@ -159,8 +140,8 @@ ${result.sentiment.keyPhrases.map((p) => `  * "${p}"`).join('\n')}
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
       <div className="mb-6">
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-semibold mb-2">
-          <Sparkles className="w-3.5 h-3.5" />
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/25 text-cyan-300 text-xs font-semibold mb-2">
+          <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
           Powered by Gemini 3.8 Flash
         </div>
         <h2 className="text-2xl font-bold text-white mb-1">AI PDF Summarizer & Intelligence</h2>
@@ -182,7 +163,7 @@ ${result.sentiment.keyPhrases.map((p) => `  * "${p}"`).join('\n')}
           {/* Header & Controls */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs">
             <div className="flex items-center gap-3">
-              <FileText className="w-4 h-4 text-rose-400" />
+              <FileText className="w-4 h-4 text-blue-400" />
               <div>
                 <span className="font-semibold text-white truncate max-w-sm block">{file.name}</span>
                 <span className="text-[11px] text-slate-400">
@@ -193,22 +174,9 @@ ${result.sentiment.keyPhrases.map((p) => `  * "${p}"`).join('\n')}
 
             <div className="flex items-center gap-2">
               <button
-                onClick={handleSaveToCloud}
-                disabled={cloudSaving}
-                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors flex items-center gap-1.5 font-medium"
-              >
-                {cloudSaving ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Cloud className="w-3.5 h-3.5 text-rose-400" />
-                )}
-                Save to Cloud
-              </button>
-
-              <button
                 onClick={handleCopy}
                 disabled={!result || isSummarizing}
-                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors flex items-center gap-1.5 font-medium disabled:opacity-40"
+                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors flex items-center gap-1.5 font-medium disabled:opacity-40 cursor-pointer"
               >
                 {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                 {copied ? 'Copied' : 'Copy'}
@@ -217,28 +185,36 @@ ${result.sentiment.keyPhrases.map((p) => `  * "${p}"`).join('\n')}
               <button
                 onClick={handleDownloadPdf}
                 disabled={!result || isSummarizing}
-                className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold flex items-center gap-1.5 shadow-md transition-all disabled:opacity-40"
+                className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold flex items-center gap-1.5 shadow-md shadow-blue-950/50 transition-all disabled:opacity-40 cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
-                Export Intelligence PDF
+                Download Intelligence PDF
               </button>
 
               <button
                 onClick={() => {
                   setFile(null);
                   setResult(null);
+                  setDownloadSuccess(null);
+                  setErrorMessage(null);
                 }}
-                className="text-slate-400 hover:text-white px-2 py-1"
+                className="text-slate-400 hover:text-white px-2 py-1 cursor-pointer"
               >
                 Change PDF
               </button>
             </div>
           </div>
 
-          {savedSuccess && (
+          {downloadSuccess && (
             <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-800/40 text-emerald-300 text-xs flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>Document and AI insights securely stored in your Personal Cloud Storage!</span>
+              <span>{downloadSuccess} — If your browser didn't save automatically, click the Download button above.</span>
+            </div>
+          )}
+
+          {errorMessage && (
+            <div className="p-3 rounded-xl bg-red-950/40 border border-red-800/40 text-red-300 text-xs flex items-center gap-2">
+              <span>{errorMessage}</span>
             </div>
           )}
 
@@ -257,9 +233,9 @@ ${result.sentiment.keyPhrases.map((p) => `  * "${p}"`).join('\n')}
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex-1 min-w-[120px] py-2 px-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-all whitespace-nowrap ${
+                  className={`flex-1 min-w-[120px] py-2 px-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
                     isActive
-                      ? 'bg-rose-600 text-white shadow-md shadow-rose-950/40'
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-950/50'
                       : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                   }`}
                 >
@@ -274,7 +250,7 @@ ${result.sentiment.keyPhrases.map((p) => `  * "${p}"`).join('\n')}
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl min-h-[380px]">
             {isSummarizing ? (
               <div className="py-20 text-center flex flex-col items-center">
-                <Loader2 className="w-8 h-8 animate-spin text-rose-500 mb-3" />
+                <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-3" />
                 <p className="text-sm font-semibold text-white mb-1">
                   Synthesizing Document Intelligence with Gemini 3.8 Flash...
                 </p>
@@ -293,7 +269,7 @@ ${result.sentiment.keyPhrases.map((p) => `  * "${p}"`).join('\n')}
                   <div className="space-y-4">
                     <div className="flex items-center justify-between pb-3 border-b border-slate-800 text-xs">
                       <span className="font-bold text-white flex items-center gap-1.5">
-                        <Sparkles className="w-4 h-4 text-rose-400" />
+                        <Sparkles className="w-4 h-4 text-cyan-400" />
                         Executive Summary
                       </span>
                       <span className="text-slate-400">
@@ -311,7 +287,7 @@ ${result.sentiment.keyPhrases.map((p) => `  * "${p}"`).join('\n')}
                   <div className="space-y-4">
                     <div className="flex items-center justify-between pb-3 border-b border-slate-800 text-xs">
                       <span className="font-bold text-white flex items-center gap-1.5">
-                        <Tag className="w-4 h-4 text-rose-400" />
+                        <Tag className="w-4 h-4 text-blue-400" />
                         Identified Entities & Key References
                       </span>
                       <span className="text-slate-400">{result.entities.length} Detected</span>
@@ -325,7 +301,7 @@ ${result.sentiment.keyPhrases.map((p) => `  * "${p}"`).join('\n')}
                         >
                           <div className="flex items-start justify-between gap-2 mb-1.5">
                             <span className="text-xs font-bold text-white">{entity.name}</span>
-                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-rose-300 border border-slate-700 uppercase">
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-sky-300 border border-slate-700 uppercase">
                               {entity.category}
                             </span>
                           </div>
@@ -343,7 +319,7 @@ ${result.sentiment.keyPhrases.map((p) => `  * "${p}"`).join('\n')}
                   <div className="space-y-4">
                     <div className="flex items-center justify-between pb-3 border-b border-slate-800 text-xs">
                       <span className="font-bold text-white flex items-center gap-1.5">
-                        <Layers className="w-4 h-4 text-rose-400" />
+                        <Layers className="w-4 h-4 text-cyan-400" />
                         Key Topics & Thematic Breakdown
                       </span>
                       <span className="text-slate-400">Ranked by Relevance</span>
@@ -357,7 +333,7 @@ ${result.sentiment.keyPhrases.map((p) => `  * "${p}"`).join('\n')}
                         >
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-bold text-white">{topic.topic}</span>
-                            <span className="text-xs font-mono font-bold text-rose-400">
+                            <span className="text-xs font-mono font-bold text-cyan-400">
                               {topic.relevance}% Relevance
                             </span>
                           </div>
@@ -365,7 +341,7 @@ ${result.sentiment.keyPhrases.map((p) => `  * "${p}"`).join('\n')}
                           {/* Progress bar */}
                           <div className="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
                             <div
-                              className="h-full bg-gradient-to-r from-rose-500 to-indigo-500 rounded-full"
+                              className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full"
                               style={{ width: `${topic.relevance}%` }}
                             />
                           </div>
@@ -384,7 +360,7 @@ ${result.sentiment.keyPhrases.map((p) => `  * "${p}"`).join('\n')}
                   <div className="space-y-4">
                     <div className="flex items-center justify-between pb-3 border-b border-slate-800 text-xs">
                       <span className="font-bold text-white flex items-center gap-1.5">
-                        <Lightbulb className="w-4 h-4 text-rose-400" />
+                        <Lightbulb className="w-4 h-4 text-amber-400" />
                         Strategic Insights & Critical Takeaways
                       </span>
                       <span className="text-slate-400">{result.insights.length} Takeaways</span>
@@ -421,7 +397,7 @@ ${result.sentiment.keyPhrases.map((p) => `  * "${p}"`).join('\n')}
                   <div className="space-y-6">
                     <div className="flex items-center justify-between pb-3 border-b border-slate-800 text-xs">
                       <span className="font-bold text-white flex items-center gap-1.5">
-                        <Smile className="w-4 h-4 text-rose-400" />
+                        <Smile className="w-4 h-4 text-cyan-400" />
                         Document Sentiment & Tonal Architecture
                       </span>
                       <span
@@ -455,7 +431,7 @@ ${result.sentiment.keyPhrases.map((p) => `  * "${p}"`).join('\n')}
                         <div className="w-full h-3 rounded-full bg-slate-800 relative overflow-hidden">
                           <div className="absolute inset-y-0 left-1/2 w-0.5 bg-slate-600" />
                           <div
-                            className="h-full bg-gradient-to-r from-rose-500 via-amber-400 to-emerald-400 rounded-full"
+                            className="h-full bg-gradient-to-r from-blue-600 via-amber-400 to-emerald-400 rounded-full"
                             style={{
                               width: `${Math.round(((result.sentiment.score + 1) / 2) * 100)}%`,
                             }}
@@ -482,7 +458,7 @@ ${result.sentiment.keyPhrases.map((p) => `  * "${p}"`).join('\n')}
                           {result.sentiment.keyPhrases.map((phrase, idx) => (
                             <div
                               key={idx}
-                              className="p-3 rounded-xl bg-slate-950/80 border border-slate-800/80 text-xs italic text-rose-300/90 font-mono"
+                              className="p-3 rounded-xl bg-slate-950/80 border border-slate-800/80 text-xs italic text-sky-300/90 font-mono"
                             >
                               "{phrase}"
                             </div>

@@ -32,9 +32,12 @@ export const OrganizeTool: React.FC<OrganizeToolProps> = ({ onSelectSample }) =>
   const [isLoadingPages, setIsLoadingPages] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [lastModifiedBytes, setLastModifiedBytes] = useState<Uint8Array | null>(null);
 
   const loadDocumentPages = async (bytes: Uint8Array, fileName: string) => {
     setIsLoadingPages(true);
+    setErrorMessage(null);
     try {
       const doc = await loadPdfDocument(bytes);
       const loaded: PageCard[] = [];
@@ -53,7 +56,7 @@ export const OrganizeTool: React.FC<OrganizeToolProps> = ({ onSelectSample }) =>
       setPages(loaded);
       setSuccessMessage(null);
     } catch (err: any) {
-      alert(`Failed to load PDF pages: ${err.message}`);
+      setErrorMessage(`Failed to load PDF pages: ${err.message}`);
     } finally {
       setIsLoadingPages(false);
     }
@@ -110,18 +113,21 @@ export const OrganizeTool: React.FC<OrganizeToolProps> = ({ onSelectSample }) =>
     if (!file) return;
     const active = pages.filter((p) => !p.isDeleted);
     if (active.length === 0) {
-      alert('You must keep at least 1 page.');
+      setErrorMessage('You must keep at least 1 page.');
       return;
     }
 
     setIsSaving(true);
     setSuccessMessage(null);
+    setErrorMessage(null);
     try {
       const modifiedBytes = await reorderAndRotatePDF(file.bytes, pages);
-      downloadFile(modifiedBytes, `${file.name.replace('.pdf', '')}_organized.pdf`);
-      setSuccessMessage(`Successfully saved reorganized PDF with ${active.length} pages!`);
+      setLastModifiedBytes(modifiedBytes);
+      const outName = `${file.name.replace('.pdf', '')}_organized.pdf`;
+      downloadFile(modifiedBytes, outName);
+      setSuccessMessage(`Successfully saved reorganized PDF with ${active.length} pages into ${outName}!`);
     } catch (err: any) {
-      alert(`Failed to save: ${err.message}`);
+      setErrorMessage(`Failed to save: ${err.message}`);
     } finally {
       setIsSaving(false);
     }
@@ -151,7 +157,7 @@ export const OrganizeTool: React.FC<OrganizeToolProps> = ({ onSelectSample }) =>
             <button
               onClick={handleSave}
               disabled={isSaving || activeCount === 0}
-              className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-950/40 transition-all flex items-center gap-1.5 disabled:opacity-40"
+              className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-950/50 transition-all flex items-center gap-1.5 disabled:opacity-40 cursor-pointer"
             >
               {isSaving ? (
                 <>
@@ -178,7 +184,7 @@ export const OrganizeTool: React.FC<OrganizeToolProps> = ({ onSelectSample }) =>
         />
       ) : isLoadingPages ? (
         <div className="p-16 text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-rose-500 mx-auto mb-3" />
+          <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-3" />
           <p className="text-xs text-slate-400">Rendering high-resolution page thumbnails...</p>
         </div>
       ) : (
@@ -186,7 +192,7 @@ export const OrganizeTool: React.FC<OrganizeToolProps> = ({ onSelectSample }) =>
           {/* Header Status */}
           <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between text-xs">
             <div className="flex items-center gap-3">
-              <FileText className="w-4 h-4 text-rose-400" />
+              <FileText className="w-4 h-4 text-blue-400" />
               <span className="font-semibold text-white">{file.name}</span>
               <span className="text-slate-400">
                 · {activeCount} of {pages.length} pages active
@@ -197,7 +203,7 @@ export const OrganizeTool: React.FC<OrganizeToolProps> = ({ onSelectSample }) =>
                 setFile(null);
                 setPages([]);
               }}
-              className="text-slate-400 hover:text-white"
+              className="text-slate-400 hover:text-white cursor-pointer"
             >
               Change PDF
             </button>
@@ -241,7 +247,7 @@ export const OrganizeTool: React.FC<OrganizeToolProps> = ({ onSelectSample }) =>
                   )}
 
                   {p.rotation !== 0 && (
-                    <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-slate-900/90 text-[10px] text-rose-300 border border-slate-700">
+                    <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-slate-900/90 text-[10px] text-sky-300 border border-slate-700">
                       {p.rotation}°
                     </span>
                   )}
@@ -254,7 +260,7 @@ export const OrganizeTool: React.FC<OrganizeToolProps> = ({ onSelectSample }) =>
                       onClick={() => movePage(idx, idx - 1)}
                       disabled={idx === 0 || p.isDeleted}
                       title="Move Left"
-                      className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white disabled:opacity-20"
+                      className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white disabled:opacity-20 cursor-pointer"
                     >
                       <ArrowLeft className="w-3 h-3" />
                     </button>
@@ -262,7 +268,7 @@ export const OrganizeTool: React.FC<OrganizeToolProps> = ({ onSelectSample }) =>
                       onClick={() => movePage(idx, idx + 1)}
                       disabled={idx === pages.length - 1 || p.isDeleted}
                       title="Move Right"
-                      className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white disabled:opacity-20"
+                      className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white disabled:opacity-20 cursor-pointer"
                     >
                       <ArrowRight className="w-3 h-3" />
                     </button>
@@ -273,14 +279,14 @@ export const OrganizeTool: React.FC<OrganizeToolProps> = ({ onSelectSample }) =>
                       onClick={() => rotatePage(idx)}
                       disabled={p.isDeleted}
                       title="Rotate 90°"
-                      className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-rose-400 disabled:opacity-20"
+                      className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-blue-400 disabled:opacity-20 cursor-pointer"
                     >
                       <RotateCw className="w-3 h-3" />
                     </button>
                     <button
                       onClick={() => toggleDelete(idx)}
                       title={p.isDeleted ? 'Restore Page' : 'Delete Page'}
-                      className={`p-1 rounded ${
+                      className={`p-1 rounded cursor-pointer ${
                         p.isDeleted
                           ? 'bg-emerald-900/40 text-emerald-400 hover:bg-emerald-800/50'
                           : 'bg-slate-800 hover:bg-red-950/60 text-slate-400 hover:text-red-400'
@@ -295,9 +301,29 @@ export const OrganizeTool: React.FC<OrganizeToolProps> = ({ onSelectSample }) =>
           </div>
 
           {successMessage && (
-            <div className="p-4 rounded-xl bg-emerald-950/30 border border-emerald-800/40 text-emerald-300 text-xs flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              {successMessage}
+            <div className="p-4 rounded-xl bg-emerald-950/30 border border-emerald-800/40 text-emerald-300 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{successMessage}</span>
+              </div>
+              {lastModifiedBytes && (
+                <button
+                  onClick={() => {
+                    const outName = `${file.name.replace('.pdf', '')}_organized.pdf`;
+                    downloadFile(lastModifiedBytes, outName);
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold flex items-center gap-1.5 self-start sm:self-auto shrink-0 shadow transition-colors cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download File Again
+                </button>
+              )}
+            </div>
+          )}
+
+          {errorMessage && (
+            <div className="p-4 rounded-xl bg-red-950/30 border border-red-800/40 text-red-300 text-xs flex items-center gap-2">
+              <span>{errorMessage}</span>
             </div>
           )}
         </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileText, Copy, Download, Search, Check, Loader2 } from 'lucide-react';
+import { FileText, Copy, Download, Search, Check, Loader2, CheckCircle2 } from 'lucide-react';
 import { extractTextFromPDF } from '../../services/pdfRenderer';
 import { downloadFile } from '../../services/pdfOperations';
 import { Dropzone } from '../Dropzone';
@@ -17,6 +17,8 @@ export const PdfToTextTool: React.FC<PdfToTextToolProps> = ({ onSelectSample }) 
   const [isExtracting, setIsExtracting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [copied, setCopied] = useState(false);
+  const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleFileSelected = async (files: File[]) => {
     if (files.length === 0) return;
@@ -25,11 +27,13 @@ export const PdfToTextTool: React.FC<PdfToTextToolProps> = ({ onSelectSample }) 
     const bytes = new Uint8Array(buffer);
     setFile({ name: f.name, bytes });
     setIsExtracting(true);
+    setErrorMessage(null);
+    setDownloadSuccess(null);
     try {
       const data = await extractTextFromPDF(bytes);
       setExtractedData(data);
     } catch (err: any) {
-      alert(`Text extraction failed: ${err.message}`);
+      setErrorMessage(`Text extraction failed: ${err.message}`);
     } finally {
       setIsExtracting(false);
     }
@@ -44,8 +48,10 @@ export const PdfToTextTool: React.FC<PdfToTextToolProps> = ({ onSelectSample }) 
 
   const handleDownloadTxt = (format: 'txt' | 'md') => {
     if (!file || !extractedData) return;
+    const outName = `${file.name.replace('.pdf', '')}_extracted.${format}`;
     const blob = new Blob([extractedData.fullText], { type: 'text/plain;charset=utf-8' });
-    downloadFile(blob, `${file.name.replace('.pdf', '')}_extracted.${format}`, 'text/plain');
+    downloadFile(blob, outName, 'text/plain');
+    setDownloadSuccess(`Downloaded ${outName}!`);
   };
 
   const wordsCount = extractedData?.fullText.split(/\s+/).filter(Boolean).length || 0;
@@ -68,14 +74,14 @@ export const PdfToTextTool: React.FC<PdfToTextToolProps> = ({ onSelectSample }) 
         />
       ) : isExtracting ? (
         <div className="p-16 text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-rose-500 mx-auto mb-3" />
+          <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-3" />
           <p className="text-xs text-slate-400">Extracting document text...</p>
         </div>
       ) : (
         <div className="space-y-6">
           <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-3">
-              <FileText className="w-4 h-4 text-rose-400" />
+              <FileText className="w-4 h-4 text-blue-400" />
               <span className="font-semibold text-white">{file.name}</span>
               <span className="text-slate-400">
                 · {wordsCount} words · {extractedData?.pages.length || 0} pages
@@ -85,14 +91,14 @@ export const PdfToTextTool: React.FC<PdfToTextToolProps> = ({ onSelectSample }) 
             <div className="flex items-center gap-2">
               <button
                 onClick={handleCopy}
-                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors flex items-center gap-1.5 text-xs font-medium"
+                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors flex items-center gap-1.5 text-xs font-medium cursor-pointer"
               >
                 {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                 {copied ? 'Copied' : 'Copy All'}
               </button>
               <button
                 onClick={() => handleDownloadTxt('txt')}
-                className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white transition-colors flex items-center gap-1.5 text-xs font-semibold"
+                className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-colors flex items-center gap-1.5 text-xs font-semibold cursor-pointer shadow-md shadow-blue-950/40"
               >
                 <Download className="w-3.5 h-3.5" />
                 Download TXT
@@ -102,12 +108,25 @@ export const PdfToTextTool: React.FC<PdfToTextToolProps> = ({ onSelectSample }) 
                   setFile(null);
                   setExtractedData(null);
                 }}
-                className="text-slate-400 hover:text-white px-2 py-1"
+                className="text-slate-400 hover:text-white px-2 py-1 cursor-pointer"
               >
                 Change PDF
               </button>
             </div>
           </div>
+
+          {downloadSuccess && (
+            <div className="p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-800/40 text-emerald-300 text-xs flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>{downloadSuccess}</span>
+            </div>
+          )}
+
+          {errorMessage && (
+            <div className="p-3.5 rounded-xl bg-red-950/30 border border-red-800/40 text-red-300 text-xs flex items-center gap-2">
+              <span>{errorMessage}</span>
+            </div>
+          )}
 
           {/* Search within extracted text */}
           <div className="relative">
@@ -117,7 +136,7 @@ export const PdfToTextTool: React.FC<PdfToTextToolProps> = ({ onSelectSample }) 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search extracted text..."
-              className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs text-white focus:outline-none focus:border-rose-500"
+              className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
             />
           </div>
 
@@ -129,7 +148,7 @@ export const PdfToTextTool: React.FC<PdfToTextToolProps> = ({ onSelectSample }) 
               }
               return (
                 <div key={p.pageNum} className="pb-4 border-b border-slate-800/80 last:border-b-0">
-                  <div className="text-[11px] font-sans font-bold text-rose-400 mb-2 uppercase tracking-wider">
+                  <div className="text-[11px] font-sans font-bold text-sky-400 mb-2 uppercase tracking-wider">
                     Page {p.pageNum}
                   </div>
                   <p className="whitespace-pre-wrap">{p.text || '(No text found on this page)'}</p>

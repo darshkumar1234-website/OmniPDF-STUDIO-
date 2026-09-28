@@ -59,6 +59,8 @@ export const AnnotateTool: React.FC<AnnotateToolProps> = ({ onSelectSample }) =>
   const [isLoadingPage, setIsLoadingPage] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [lastModifiedBytes, setLastModifiedBytes] = useState<Uint8Array | null>(null);
 
   const baseCanvasRef = useRef<HTMLCanvasElement>(null);
   const drawCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -211,12 +213,15 @@ export const AnnotateTool: React.FC<AnnotateToolProps> = ({ onSelectSample }) =>
     if (!file) return;
     setIsSaving(true);
     setSuccessMessage(null);
+    setErrorMessage(null);
     try {
       const modifiedBytes = await applyAnnotationsToPDF(file.bytes, annotations as any);
-      downloadFile(modifiedBytes, `${file.name.replace('.pdf', '')}_annotated.pdf`);
-      setSuccessMessage('Successfully exported annotated PDF without any watermarks!');
+      setLastModifiedBytes(modifiedBytes);
+      const outName = `${file.name.replace('.pdf', '')}_annotated.pdf`;
+      downloadFile(modifiedBytes, outName);
+      setSuccessMessage(`Successfully exported annotated PDF without any watermarks into ${outName}!`);
     } catch (err: any) {
-      alert(`Save error: ${err.message}`);
+      setErrorMessage(`Save error: ${err.message}`);
     } finally {
       setIsSaving(false);
     }
@@ -238,7 +243,7 @@ export const AnnotateTool: React.FC<AnnotateToolProps> = ({ onSelectSample }) =>
           <button
             onClick={handleSaveDocument}
             disabled={isSaving}
-            className="px-5 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-950/40 transition-all flex items-center gap-2 self-start sm:self-auto disabled:opacity-40"
+            className="px-5 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-950/50 transition-all flex items-center gap-2 self-start sm:self-auto disabled:opacity-40 cursor-pointer"
           >
             {isSaving ? (
               <>
@@ -269,9 +274,9 @@ export const AnnotateTool: React.FC<AnnotateToolProps> = ({ onSelectSample }) =>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setActiveTool('text')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
                   activeTool === 'text'
-                    ? 'bg-rose-600 text-white shadow'
+                    ? 'bg-blue-600 text-white shadow'
                     : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                 }`}
               >
@@ -280,9 +285,9 @@ export const AnnotateTool: React.FC<AnnotateToolProps> = ({ onSelectSample }) =>
               </button>
               <button
                 onClick={() => setActiveTool('draw')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
                   activeTool === 'draw'
-                    ? 'bg-rose-600 text-white shadow'
+                    ? 'bg-blue-600 text-white shadow'
                     : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                 }`}
               >
@@ -291,9 +296,9 @@ export const AnnotateTool: React.FC<AnnotateToolProps> = ({ onSelectSample }) =>
               </button>
               <button
                 onClick={() => setActiveTool('redact')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
                   activeTool === 'redact'
-                    ? 'bg-rose-600 text-white shadow'
+                    ? 'bg-blue-600 text-white shadow'
                     : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                 }`}
               >
@@ -310,7 +315,7 @@ export const AnnotateTool: React.FC<AnnotateToolProps> = ({ onSelectSample }) =>
                   value={textInput}
                   onChange={(e) => setTextInput(e.target.value)}
                   placeholder="Text to stamp..."
-                  className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-white w-44 focus:outline-none focus:border-rose-500"
+                  className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-white w-44 focus:outline-none focus:border-blue-500"
                 />
                 <select
                   value={fontSize}
@@ -335,7 +340,7 @@ export const AnnotateTool: React.FC<AnnotateToolProps> = ({ onSelectSample }) =>
                       key={color}
                       onClick={() => setPenColor(color)}
                       style={{ backgroundColor: color }}
-                      className={`w-5 h-5 rounded-full border ${
+                      className={`w-5 h-5 rounded-full border cursor-pointer ${
                         penColor === color ? 'border-white scale-110' : 'border-transparent'
                       }`}
                     />
@@ -362,7 +367,7 @@ export const AnnotateTool: React.FC<AnnotateToolProps> = ({ onSelectSample }) =>
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage <= 1}
-                  className="p-0.5 rounded hover:bg-slate-800 disabled:opacity-30"
+                  className="p-0.5 rounded hover:bg-slate-800 disabled:opacity-30 cursor-pointer"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
@@ -372,7 +377,7 @@ export const AnnotateTool: React.FC<AnnotateToolProps> = ({ onSelectSample }) =>
                 <button
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage >= totalPages}
-                  className="p-0.5 rounded hover:bg-slate-800 disabled:opacity-30"
+                  className="p-0.5 rounded hover:bg-slate-800 disabled:opacity-30 cursor-pointer"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -381,7 +386,7 @@ export const AnnotateTool: React.FC<AnnotateToolProps> = ({ onSelectSample }) =>
               <button
                 onClick={handleClearCurrentPage}
                 title="Clear Page Annotations"
-                className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-950/50 text-slate-400 hover:text-rose-400 transition-colors"
+                className="p-1.5 rounded-lg bg-slate-800 hover:bg-red-950/50 text-slate-400 hover:text-red-400 transition-colors cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
@@ -397,7 +402,7 @@ export const AnnotateTool: React.FC<AnnotateToolProps> = ({ onSelectSample }) =>
           >
             {isLoadingPage ? (
               <div className="p-12 text-center">
-                <Loader2 className="w-8 h-8 animate-spin text-rose-500 mx-auto mb-2" />
+                <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-2" />
                 <p className="text-xs text-slate-400">Loading page {currentPage}...</p>
               </div>
             ) : (
@@ -448,9 +453,29 @@ export const AnnotateTool: React.FC<AnnotateToolProps> = ({ onSelectSample }) =>
           </div>
 
           {successMessage && (
-            <div className="p-4 rounded-xl bg-emerald-950/30 border border-emerald-800/40 text-emerald-300 text-xs flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              {successMessage}
+            <div className="p-4 rounded-xl bg-emerald-950/30 border border-emerald-800/40 text-emerald-300 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{successMessage}</span>
+              </div>
+              {lastModifiedBytes && (
+                <button
+                  onClick={() => {
+                    const outName = `${file.name.replace('.pdf', '')}_annotated.pdf`;
+                    downloadFile(lastModifiedBytes, outName);
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold flex items-center gap-1.5 self-start sm:self-auto shrink-0 shadow transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download File Again
+                </button>
+              )}
+            </div>
+          )}
+
+          {errorMessage && (
+            <div className="p-4 rounded-xl bg-red-950/30 border border-red-800/40 text-red-300 text-xs flex items-center gap-2">
+              <span>{errorMessage}</span>
             </div>
           )}
         </div>

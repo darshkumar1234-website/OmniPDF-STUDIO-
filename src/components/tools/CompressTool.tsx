@@ -13,6 +13,8 @@ export const CompressTool: React.FC<CompressToolProps> = ({ onSelectSample }) =>
   const [level, setLevel] = useState<'recommended' | 'extreme' | 'low'>('recommended');
   const [isCompressing, setIsCompressing] = useState(false);
   const [result, setResult] = useState<{ size: number; bytes: Uint8Array; savings: number } | null>(null);
+  const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleFileSelected = async (files: File[]) => {
     if (files.length === 0) return;
@@ -21,11 +23,15 @@ export const CompressTool: React.FC<CompressToolProps> = ({ onSelectSample }) =>
     const bytes = new Uint8Array(buffer);
     setFile({ name: f.name, size: f.size, bytes });
     setResult(null);
+    setDownloadSuccess(null);
+    setErrorMessage(null);
   };
 
   const handleCompress = async () => {
     if (!file) return;
     setIsCompressing(true);
+    setErrorMessage(null);
+    setDownloadSuccess(null);
     try {
       // PDF optimization: reload document, strip unused objects, remove structure trees, compress streams
       const srcDoc = await PDFDocument.load(file.bytes, { ignoreEncryption: true });
@@ -51,7 +57,7 @@ export const CompressTool: React.FC<CompressToolProps> = ({ onSelectSample }) =>
         savings: savedPercent,
       });
     } catch (err: any) {
-      alert(`Compression error: ${err.message}`);
+      setErrorMessage(`Compression error: ${err.message}`);
     } finally {
       setIsCompressing(false);
     }
@@ -59,7 +65,9 @@ export const CompressTool: React.FC<CompressToolProps> = ({ onSelectSample }) =>
 
   const handleDownload = () => {
     if (!file || !result) return;
-    downloadFile(result.bytes, `${file.name.replace('.pdf', '')}_compressed.pdf`);
+    const outName = `${file.name.replace('.pdf', '')}_compressed.pdf`;
+    downloadFile(result.bytes, outName);
+    setDownloadSuccess(`Downloaded ${outName}!`);
   };
 
   return (
@@ -82,7 +90,7 @@ export const CompressTool: React.FC<CompressToolProps> = ({ onSelectSample }) =>
         <div className="space-y-6">
           <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between text-xs">
             <div className="flex items-center gap-3">
-              <FileText className="w-4 h-4 text-rose-400" />
+              <FileText className="w-4 h-4 text-blue-400" />
               <span className="font-semibold text-white">{file.name}</span>
               <span className="text-slate-400">· {(file.size / 1024).toFixed(1)} KB</span>
             </div>
@@ -91,7 +99,7 @@ export const CompressTool: React.FC<CompressToolProps> = ({ onSelectSample }) =>
                 setFile(null);
                 setResult(null);
               }}
-              className="text-slate-400 hover:text-white"
+              className="text-slate-400 hover:text-white cursor-pointer"
             >
               Change PDF
             </button>
@@ -121,16 +129,16 @@ export const CompressTool: React.FC<CompressToolProps> = ({ onSelectSample }) =>
                 <button
                   key={lvl.id}
                   onClick={() => setLevel(lvl.id as any)}
-                  className={`p-3.5 rounded-xl border text-left transition-all ${
+                  className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
                     level === lvl.id
-                      ? 'border-rose-500 bg-rose-500/10 text-white'
+                      ? 'border-blue-500 bg-blue-500/10 text-white'
                       : 'border-slate-800 bg-slate-950/60 text-slate-400 hover:border-slate-700'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-xs font-semibold text-white">{lvl.title}</p>
                     {lvl.badge && (
-                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-blue-500/20 text-cyan-300 border border-blue-500/30">
                         {lvl.badge}
                       </span>
                     )}
@@ -144,7 +152,7 @@ export const CompressTool: React.FC<CompressToolProps> = ({ onSelectSample }) =>
               <button
                 onClick={handleCompress}
                 disabled={isCompressing}
-                className="px-6 py-2.5 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-950/40 transition-all flex items-center gap-2 disabled:opacity-40"
+                className="px-6 py-2.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-950/50 transition-all flex items-center gap-2 disabled:opacity-40 cursor-pointer"
               >
                 {isCompressing ? (
                   <>
@@ -194,6 +202,19 @@ export const CompressTool: React.FC<CompressToolProps> = ({ onSelectSample }) =>
                 <Download className="w-4 h-4" />
                 Download Compressed PDF
               </button>
+
+              {downloadSuccess && (
+                <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-800/40 text-emerald-300 text-xs flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>{downloadSuccess} — If the download didn't start automatically, click the Download button above.</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {errorMessage && (
+            <div className="p-4 rounded-xl bg-red-950/30 border border-red-800/40 text-red-300 text-xs flex items-center gap-2">
+              <span>{errorMessage}</span>
             </div>
           )}
         </div>

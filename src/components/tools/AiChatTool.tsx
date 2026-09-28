@@ -49,7 +49,14 @@ export const AiChatTool: React.FC<AiChatToolProps> = ({ onSelectSample }) => {
         },
       ]);
     } catch (err: any) {
-      alert(`Could not extract document: ${err.message}`);
+      setMessages([
+        {
+          id: 'error',
+          role: 'assistant',
+          content: `⚠️ Could not extract document text: ${err.message}. Please try another file or re-upload.`,
+          timestamp: Date.now(),
+        },
+      ]);
     } finally {
       setIsExtracting(false);
     }
@@ -114,8 +121,8 @@ export const AiChatTool: React.FC<AiChatToolProps> = ({ onSelectSample }) => {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="mb-6">
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-semibold mb-2">
-          <Sparkles className="w-3.5 h-3.5" />
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/25 text-cyan-300 text-xs font-semibold mb-2">
+          <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
           Powered by Gemini 3.8 Flash
         </div>
         <h2 className="text-2xl font-bold text-white mb-1">Chat with PDF</h2>
@@ -134,7 +141,7 @@ export const AiChatTool: React.FC<AiChatToolProps> = ({ onSelectSample }) => {
         />
       ) : isExtracting ? (
         <div className="p-16 text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-rose-500 mx-auto mb-3" />
+          <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-3" />
           <p className="text-sm font-semibold text-white">Ingesting document context...</p>
         </div>
       ) : (
@@ -142,7 +149,7 @@ export const AiChatTool: React.FC<AiChatToolProps> = ({ onSelectSample }) => {
           {/* Header */}
           <div className="p-3.5 border-b border-slate-800 bg-slate-950/70 flex items-center justify-between text-xs">
             <div className="flex items-center gap-2.5">
-              <FileText className="w-4 h-4 text-rose-400" />
+              <FileText className="w-4 h-4 text-blue-400" />
               <span className="font-semibold text-white truncate max-w-xs">{file.name}</span>
               <span className="text-slate-400">· {docText.split(/\s+/).filter(Boolean).length} words</span>
             </div>
@@ -150,7 +157,7 @@ export const AiChatTool: React.FC<AiChatToolProps> = ({ onSelectSample }) => {
               <button
                 onClick={() => setMessages([])}
                 title="Clear Chat History"
-                className="p-1.5 rounded hover:bg-slate-800 text-slate-400 hover:text-rose-400"
+                className="p-1.5 rounded hover:bg-slate-800 text-slate-400 hover:text-red-400 cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
@@ -160,7 +167,7 @@ export const AiChatTool: React.FC<AiChatToolProps> = ({ onSelectSample }) => {
                   setDocText('');
                   setMessages([]);
                 }}
-                className="text-slate-400 hover:text-white px-2 py-1"
+                className="text-slate-400 hover:text-white px-2 py-1 cursor-pointer"
               >
                 Change PDF
               </button>
@@ -177,7 +184,7 @@ export const AiChatTool: React.FC<AiChatToolProps> = ({ onSelectSample }) => {
                 }`}
               >
                 {msg.role === 'assistant' && (
-                  <div className="w-7 h-7 rounded-lg bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0 mt-0.5">
+                  <div className="w-7 h-7 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-cyan-300 shrink-0 mt-0.5">
                     <Bot className="w-4 h-4" />
                   </div>
                 )}
@@ -185,7 +192,7 @@ export const AiChatTool: React.FC<AiChatToolProps> = ({ onSelectSample }) => {
                 <div
                   className={`max-w-[85%] rounded-2xl p-3.5 ${
                     msg.role === 'user'
-                      ? 'bg-rose-600 text-white rounded-tr-xs'
+                      ? 'bg-blue-600 text-white rounded-tr-xs'
                       : 'bg-slate-950 border border-slate-800 text-slate-200 rounded-tl-xs whitespace-pre-wrap'
                   }`}
                 >
@@ -202,11 +209,11 @@ export const AiChatTool: React.FC<AiChatToolProps> = ({ onSelectSample }) => {
 
             {isThinking && (
               <div className="flex gap-3 text-xs justify-start">
-                <div className="w-7 h-7 rounded-lg bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0">
+                <div className="w-7 h-7 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-cyan-300 shrink-0">
                   <Bot className="w-4 h-4" />
                 </div>
                 <div className="bg-slate-950 border border-slate-800 text-slate-400 rounded-2xl rounded-tl-xs p-3 flex items-center gap-2">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-400" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
                   <span>Analyzing document citations...</span>
                 </div>
               </div>
@@ -223,7 +230,7 @@ export const AiChatTool: React.FC<AiChatToolProps> = ({ onSelectSample }) => {
                 <button
                   key={idx}
                   onClick={() => handleSend(q)}
-                  className="px-2.5 py-1 rounded-full bg-slate-800/80 hover:bg-slate-800 text-slate-300 text-[11px] whitespace-nowrap border border-slate-700/60 transition-colors"
+                  className="px-2.5 py-1 rounded-full bg-slate-800/80 hover:bg-slate-800 text-slate-300 text-[11px] whitespace-nowrap border border-slate-700/60 transition-colors cursor-pointer"
                 >
                   {q}
                 </button>
@@ -241,12 +248,12 @@ export const AiChatTool: React.FC<AiChatToolProps> = ({ onSelectSample }) => {
                 if (e.key === 'Enter') handleSend();
               }}
               placeholder="Ask anything about this document..."
-              className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500"
+              className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
             />
             <button
               onClick={() => handleSend()}
               disabled={!inputQuery.trim() || isThinking}
-              className="p-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white disabled:opacity-30 transition-colors shrink-0"
+              className="p-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-30 transition-colors shrink-0 cursor-pointer shadow-md shadow-blue-950/50"
             >
               <Send className="w-4 h-4" />
             </button>

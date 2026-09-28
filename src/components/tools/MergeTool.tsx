@@ -21,6 +21,8 @@ export const MergeTool: React.FC<MergeToolProps> = ({ onSelectSample }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [outputName, setOutputName] = useState('Merged_Document.pdf');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [lastMergedBytes, setLastMergedBytes] = useState<Uint8Array | null>(null);
 
   const handleFilesSelected = async (newFiles: File[]) => {
     const items: MergeItem[] = [];
@@ -63,12 +65,15 @@ export const MergeTool: React.FC<MergeToolProps> = ({ onSelectSample }) => {
     if (files.length < 2) return;
     setIsProcessing(true);
     setSuccessMessage(null);
+    setErrorMessage(null);
     try {
       const mergedBytes = await mergePDFs(files.map((f) => ({ name: f.name, bytes: f.bytes })));
-      downloadFile(mergedBytes, outputName || 'Merged_Document.pdf');
-      setSuccessMessage(`Successfully merged ${files.length} documents into ${outputName}!`);
+      setLastMergedBytes(mergedBytes);
+      const filename = outputName.endsWith('.pdf') ? outputName : `${outputName}.pdf`;
+      downloadFile(mergedBytes, filename);
+      setSuccessMessage(`Successfully merged ${files.length} documents into ${filename}!`);
     } catch (err: any) {
-      alert(`Merge failed: ${err.message}`);
+      setErrorMessage(`Merge failed: ${err.message}`);
     } finally {
       setIsProcessing(false);
     }
@@ -101,7 +106,7 @@ export const MergeTool: React.FC<MergeToolProps> = ({ onSelectSample }) => {
               <span className="font-semibold text-slate-200">
                 {files.length} Files Selected · {totalPages} Total Pages
               </span>
-              <label className="cursor-pointer text-rose-400 hover:text-rose-300 font-medium flex items-center gap-1">
+              <label className="cursor-pointer text-blue-400 hover:text-sky-300 font-medium flex items-center gap-1">
                 <Plus className="w-3.5 h-3.5" />
                 Add more files
                 <input
@@ -126,7 +131,7 @@ export const MergeTool: React.FC<MergeToolProps> = ({ onSelectSample }) => {
                     <span className="w-6 h-6 rounded-lg bg-slate-800 flex items-center justify-center text-xs font-semibold text-slate-300">
                       {idx + 1}
                     </span>
-                    <FileText className="w-4 h-4 text-rose-400 shrink-0" />
+                    <FileText className="w-4 h-4 text-blue-400 shrink-0" />
                     <div className="min-w-0">
                       <p className="text-xs font-semibold text-white truncate">{file.name}</p>
                       <p className="text-[11px] text-slate-400">
@@ -155,7 +160,7 @@ export const MergeTool: React.FC<MergeToolProps> = ({ onSelectSample }) => {
                     <button
                       onClick={() => removeItem(file.id)}
                       title="Remove file"
-                      className="p-1.5 rounded-lg bg-slate-900 hover:bg-rose-950/50 text-slate-400 hover:text-rose-400 transition-colors"
+                      className="p-1.5 rounded-lg bg-slate-900 hover:bg-red-950/50 text-slate-400 hover:text-red-400 transition-colors"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -175,14 +180,14 @@ export const MergeTool: React.FC<MergeToolProps> = ({ onSelectSample }) => {
                 type="text"
                 value={outputName}
                 onChange={(e) => setOutputName(e.target.value)}
-                className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-rose-500 w-full sm:w-64"
+                className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 w-full sm:w-64"
               />
             </div>
 
             <button
               onClick={handleMerge}
               disabled={files.length < 2 || isProcessing}
-              className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-950/40 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none"
+              className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-950/50 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
             >
               {isProcessing ? (
                 <>
@@ -199,9 +204,29 @@ export const MergeTool: React.FC<MergeToolProps> = ({ onSelectSample }) => {
           </div>
 
           {successMessage && (
-            <div className="p-4 rounded-xl bg-emerald-950/30 border border-emerald-800/40 text-emerald-300 text-xs flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              {successMessage}
+            <div className="p-4 rounded-xl bg-emerald-950/30 border border-emerald-800/40 text-emerald-300 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{successMessage}</span>
+              </div>
+              {lastMergedBytes && (
+                <button
+                  onClick={() => {
+                    const filename = outputName.endsWith('.pdf') ? outputName : `${outputName}.pdf`;
+                    downloadFile(lastMergedBytes, filename);
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold flex items-center gap-1.5 self-start sm:self-auto shrink-0 shadow transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download File Again
+                </button>
+              )}
+            </div>
+          )}
+
+          {errorMessage && (
+            <div className="p-4 rounded-xl bg-red-950/30 border border-red-800/40 text-red-300 text-xs flex items-center gap-2">
+              <span>{errorMessage}</span>
             </div>
           )}
         </div>

@@ -77,7 +77,7 @@ export const AuthModal: React.FC = () => {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl overflow-hidden">
         {/* Decorative blur */}
-        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-48 h-48 bg-rose-500/10 rounded-full blur-2xl pointer-events-none" />
+        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-48 h-48 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
 
         <button
           onClick={() => setIsAuthModalOpen(false)}
@@ -87,14 +87,14 @@ export const AuthModal: React.FC = () => {
         </button>
 
         <div className="text-center mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-rose-600 via-rose-500 to-indigo-600 flex items-center justify-center text-white mx-auto mb-3 shadow-lg shadow-rose-950/50">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-400 flex items-center justify-center text-white mx-auto mb-3 shadow-lg shadow-blue-950/60">
             <Shield className="w-6 h-6" />
           </div>
           <h2 className="text-xl font-bold text-white tracking-tight">
             {mode === 'login' ? 'Sign In to OmniPDF' : 'Create Free Account'}
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            Access personal cloud document vault and encrypted audit logs
+            Access encrypted audit logs and personal document history
           </p>
         </div>
 
@@ -107,7 +107,7 @@ export const AuthModal: React.FC = () => {
             }}
             className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
               mode === 'login'
-                ? 'bg-rose-600 text-white shadow'
+                ? 'bg-blue-600 text-white shadow'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -120,7 +120,7 @@ export const AuthModal: React.FC = () => {
             }}
             className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
               mode === 'signup'
-                ? 'bg-rose-600 text-white shadow'
+                ? 'bg-blue-600 text-white shadow'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -145,7 +145,7 @@ export const AuthModal: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@domain.com"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
               />
             </div>
           </div>
@@ -161,7 +161,7 @@ export const AuthModal: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
               />
             </div>
           </div>
@@ -169,7 +169,7 @@ export const AuthModal: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-950/40 transition-all flex items-center justify-center gap-2 disabled:opacity-50 mt-2"
+            className="w-full py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-950/50 transition-all flex items-center justify-center gap-2 disabled:opacity-50 mt-2 cursor-pointer"
           >
             {loading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -197,7 +197,7 @@ export const AuthModal: React.FC = () => {
             type="button"
             onClick={handleGoogle}
             disabled={loading}
-            className="w-full py-2 rounded-xl text-xs font-semibold bg-slate-950 hover:bg-slate-800 text-slate-200 border border-slate-800 transition-colors flex items-center justify-center gap-2.5"
+            className="w-full py-2 rounded-xl text-xs font-semibold bg-slate-950 hover:bg-slate-800 text-slate-200 border border-slate-800 transition-colors flex items-center justify-center gap-2.5 cursor-pointer"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path
@@ -225,9 +225,9 @@ export const AuthModal: React.FC = () => {
             type="button"
             onClick={handleGuest}
             disabled={loading}
-            className="w-full py-2 rounded-xl text-xs font-semibold bg-slate-800/60 hover:bg-slate-800 text-slate-300 border border-slate-700/60 transition-colors flex items-center justify-center gap-1.5"
+            className="w-full py-2 rounded-xl text-xs font-semibold bg-slate-800/60 hover:bg-slate-800 text-slate-300 border border-slate-700/60 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
           >
-            <Sparkles className="w-3.5 h-3.5 text-rose-400" />
+            <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
             Quick Demo / Guest Mode (1-Click)
           </button>
         </div>

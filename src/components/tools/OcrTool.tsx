@@ -44,7 +44,7 @@ const OCR_LANGUAGES = [
 ];
 
 export const OcrTool: React.FC<OcrToolProps> = ({ onSelectSample }) => {
-  const { user, saveFileToCloud, logAction, setIsAuthModalOpen } = useAuth();
+  const { logAction } = useAuth();
 
   const [sourceImage, setSourceImage] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>('');
@@ -57,8 +57,8 @@ export const OcrTool: React.FC<OcrToolProps> = ({ onSelectSample }) => {
   const [extractedText, setExtractedText] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [cloudSaving, setCloudSaving] = useState(false);
-  const [savedSuccess, setSavedSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
 
   const loadPdfPageAsImage = async (bytes: Uint8Array, pageNum: number) => {
     const doc = await loadPdfDocument(bytes);
@@ -74,7 +74,8 @@ export const OcrTool: React.FC<OcrToolProps> = ({ onSelectSample }) => {
     const f = files[0];
     setFileName(f.name);
     setExtractedText('');
-    setSavedSuccess(false);
+    setErrorMessage(null);
+    setDownloadSuccess(null);
 
     if (f.type === 'application/pdf' || f.name.endsWith('.pdf')) {
       const buffer = await f.arrayBuffer();
@@ -99,6 +100,7 @@ export const OcrTool: React.FC<OcrToolProps> = ({ onSelectSample }) => {
 
   const triggerOcr = async (imgDataUrl: string, nameToLog: string, lang: string) => {
     setIsProcessing(true);
+    setErrorMessage(null);
     try {
       const res = await requestOCR(imgDataUrl, 'image/png', lang);
       setExtractedText(res.text);
@@ -112,7 +114,7 @@ export const OcrTool: React.FC<OcrToolProps> = ({ onSelectSample }) => {
         `Extracted ${res.text.split(/\s+/).filter(Boolean).length} words (${lang})`
       );
     } catch (err: any) {
-      alert(`OCR Extraction error: ${err.message}`);
+      setErrorMessage(`OCR Extraction error: ${err.message}`);
       await logAction('ocr', 'Advanced Multi-Language OCR', nameToLog, 'failed', err.message);
     } finally {
       setIsProcessing(false);
@@ -140,68 +142,39 @@ export const OcrTool: React.FC<OcrToolProps> = ({ onSelectSample }) => {
   };
 
   const handleDownloadTxt = () => {
+    const outName = `${fileName.replace(/\.[^/.]+$/, '')}_OCR_result.md`;
     const blob = new Blob([extractedText], { type: 'text/markdown;charset=utf-8' });
-    downloadFile(blob, `${fileName.replace(/\.[^/.]+$/, '')}_OCR_result.md`, 'text/markdown');
+    downloadFile(blob, outName, 'text/markdown');
+    setDownloadSuccess(`Downloaded Markdown file: ${outName}`);
+    setTimeout(() => setDownloadSuccess(null), 6000);
   };
 
   const handleCreateSearchablePdf = async () => {
+    setErrorMessage(null);
     try {
+      const outName = `${fileName.replace(/\.[^/.]+$/, '')}_searchable.pdf`;
       const bytes = await convertTextToPDF(
         extractedText,
         `${fileName.replace(/\.[^/.]+$/, '')} (Searchable Digitized PDF)`
       );
-      downloadFile(bytes, `${fileName.replace(/\.[^/.]+$/, '')}_searchable.pdf`);
+      downloadFile(bytes, outName);
+      setDownloadSuccess(`Downloaded Searchable PDF: ${outName}`);
+      setTimeout(() => setDownloadSuccess(null), 6000);
     } catch (err: any) {
-      alert(`Searchable PDF creation failed: ${err.message}`);
-    }
-  };
-
-  const handleSaveToCloud = async () => {
-    if (!pdfBytes && !sourceImage) return;
-    if (!user) {
-      setIsAuthModalOpen(true);
-      return;
-    }
-    setCloudSaving(true);
-    try {
-      let bytesToSave = pdfBytes;
-      if (!bytesToSave && sourceImage) {
-        // Convert image dataUrl to bytes
-        const binary = atob(sourceImage.replace(/^data:[^;]+;base64,/, ''));
-        bytesToSave = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) {
-          bytesToSave[i] = binary.charCodeAt(i);
-        }
-      }
-
-      if (bytesToSave) {
-        await saveFileToCloud({
-          name: fileName,
-          bytes: bytesToSave,
-          pageCount: totalPages,
-          textContent: extractedText,
-          summary: `OCR Digitized Document (${detectedLanguage || selectedLanguage})`,
-        });
-        setSavedSuccess(true);
-        setTimeout(() => setSavedSuccess(false), 3500);
-      }
-    } catch (err: any) {
-      alert(`Save to vault failed: ${err.message}`);
-    } finally {
-      setCloudSaving(false);
+      setErrorMessage(`Searchable PDF creation failed: ${err.message}`);
     }
   };
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="mb-6">
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-semibold mb-2">
-          <Sparkles className="w-3.5 h-3.5" />
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/25 text-cyan-300 text-xs font-semibold mb-2">
+          <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
           Powered by Gemini 3.8 Flash OCR Engine
         </div>
         <h2 className="text-2xl font-bold text-white mb-1">Advanced Multi-Language AI OCR</h2>
         <p className="text-xs text-slate-400">
-          Accurately transcribe scanned PDF documents, invoices, receipts, and images with 100% precision. Create searchable PDFs, copy text, and save directly to your cloud vault.
+          Accurately transcribe scanned PDF documents, invoices, receipts, and images with 100% precision. Create searchable PDFs, copy text, and download instantly.
         </p>
       </div>
 
@@ -220,7 +193,7 @@ export const OcrTool: React.FC<OcrToolProps> = ({ onSelectSample }) => {
           <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-4 text-xs">
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-rose-400" />
+                <FileText className="w-4 h-4 text-blue-400" />
                 <span className="font-semibold text-white truncate max-w-xs">{fileName}</span>
               </div>
 
@@ -245,7 +218,7 @@ export const OcrTool: React.FC<OcrToolProps> = ({ onSelectSample }) => {
                   <button
                     onClick={() => handlePageChange(currentPage - 1)}
                     disabled={currentPage <= 1 || isProcessing}
-                    className="disabled:opacity-30 p-0.5 hover:text-white"
+                    className="disabled:opacity-30 p-0.5 hover:text-white cursor-pointer"
                   >
                     <ChevronLeft className="w-3.5 h-3.5" />
                   </button>
@@ -255,7 +228,7 @@ export const OcrTool: React.FC<OcrToolProps> = ({ onSelectSample }) => {
                   <button
                     onClick={() => handlePageChange(currentPage + 1)}
                     disabled={currentPage >= totalPages || isProcessing}
-                    className="disabled:opacity-30 p-0.5 hover:text-white"
+                    className="disabled:opacity-30 p-0.5 hover:text-white cursor-pointer"
                   >
                     <ChevronRight className="w-3.5 h-3.5" />
                   </button>
@@ -265,22 +238,9 @@ export const OcrTool: React.FC<OcrToolProps> = ({ onSelectSample }) => {
 
             <div className="flex flex-wrap items-center gap-2">
               <button
-                onClick={handleSaveToCloud}
-                disabled={cloudSaving}
-                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors flex items-center gap-1.5 font-medium"
-              >
-                {cloudSaving ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Cloud className="w-3.5 h-3.5 text-rose-400" />
-                )}
-                Save to Cloud
-              </button>
-
-              <button
                 onClick={handleCopy}
                 disabled={!extractedText || isProcessing}
-                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors flex items-center gap-1.5 font-medium disabled:opacity-40"
+                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors flex items-center gap-1.5 font-medium disabled:opacity-40 cursor-pointer"
               >
                 {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                 {copied ? 'Copied' : 'Copy Text'}
@@ -289,37 +249,45 @@ export const OcrTool: React.FC<OcrToolProps> = ({ onSelectSample }) => {
               <button
                 onClick={handleDownloadTxt}
                 disabled={!extractedText || isProcessing}
-                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors flex items-center gap-1.5 font-medium disabled:opacity-40"
+                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors flex items-center gap-1.5 font-medium disabled:opacity-40 cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
-                Markdown
+                Download Markdown
               </button>
 
               <button
                 onClick={handleCreateSearchablePdf}
                 disabled={!extractedText || isProcessing}
-                className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold transition-colors flex items-center gap-1.5 shadow-md shadow-rose-950/40 disabled:opacity-40"
+                className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-colors flex items-center gap-1.5 shadow-md shadow-blue-950/50 disabled:opacity-40 cursor-pointer"
               >
                 <FileCheck className="w-3.5 h-3.5" />
-                Create Searchable PDF
+                Download Searchable PDF
               </button>
 
               <button
                 onClick={() => {
                   setSourceImage(null);
                   setExtractedText('');
+                  setDownloadSuccess(null);
+                  setErrorMessage(null);
                 }}
-                className="text-slate-400 hover:text-white px-2 py-1"
+                className="text-slate-400 hover:text-white px-2 py-1 cursor-pointer"
               >
-                Change
+                Change File
               </button>
             </div>
           </div>
 
-          {savedSuccess && (
+          {downloadSuccess && (
             <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-800/40 text-emerald-300 text-xs flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>Document and extracted OCR text safely saved in your Personal Cloud Storage!</span>
+              <span>{downloadSuccess} — If your browser didn't save it automatically, click the download button above.</span>
+            </div>
+          )}
+
+          {errorMessage && (
+            <div className="p-3 rounded-xl bg-red-950/40 border border-red-800/40 text-red-300 text-xs flex items-center gap-2">
+              <span>{errorMessage}</span>
             </div>
           )}
 
@@ -343,8 +311,8 @@ export const OcrTool: React.FC<OcrToolProps> = ({ onSelectSample }) => {
             {/* Extracted Text View */}
             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex flex-col min-h-[550px]">
               <div className="text-xs font-semibold text-slate-400 mb-3 flex items-center justify-between">
-                <span className="flex items-center gap-1.5 text-rose-400">
-                  <Sparkles className="w-3.5 h-3.5" />
+                <span className="flex items-center gap-1.5 text-sky-400">
+                  <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
                   Gemini Multi-Language OCR ({detectedLanguage || selectedLanguage})
                 </span>
                 {extractedText && (
@@ -356,13 +324,13 @@ export const OcrTool: React.FC<OcrToolProps> = ({ onSelectSample }) => {
 
               {isProcessing ? (
                 <div className="flex-1 flex flex-col items-center justify-center py-20 text-center">
-                  <Loader2 className="w-8 h-8 animate-spin text-rose-500 mb-3" />
+                  <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-3" />
                   <p className="text-sm font-semibold text-white mb-1">
                     Digitizing Document with Gemini 3.8 Flash...
                   </p>
                   <p className="text-xs text-slate-400 max-w-xs">
                     Recognizing characters, punctuation, tables, and script formatting in{' '}
-                    <span className="text-rose-300 font-semibold">{selectedLanguage}</span>.
+                    <span className="text-sky-300 font-semibold">{selectedLanguage}</span>.
                   </p>
                 </div>
               ) : (

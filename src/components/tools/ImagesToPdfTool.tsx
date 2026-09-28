@@ -19,6 +19,8 @@ export const ImagesToPdfTool: React.FC = () => {
   const [margin, setMargin] = useState<number>(15);
   const [isProcessing, setIsProcessing] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [lastPdfBytes, setLastPdfBytes] = useState<Uint8Array | null>(null);
 
   const handleFilesSelected = async (files: File[]) => {
     const loaded: ImageItem[] = [];
@@ -63,15 +65,17 @@ export const ImagesToPdfTool: React.FC = () => {
     if (images.length === 0) return;
     setIsProcessing(true);
     setSuccessMessage(null);
+    setErrorMessage(null);
     try {
       const pdfBytes = await convertImagesToPDF(
         images.map((img) => ({ bytes: img.bytes, mimeType: img.mimeType })),
         { pageSize, orientation, margin }
       );
+      setLastPdfBytes(pdfBytes);
       downloadFile(pdfBytes, 'Converted_Images.pdf');
       setSuccessMessage(`Converted ${images.length} images to PDF successfully!`);
     } catch (err: any) {
-      alert(`Conversion failed: ${err.message}`);
+      setErrorMessage(`Conversion failed: ${err.message}`);
     } finally {
       setIsProcessing(false);
     }
@@ -103,7 +107,7 @@ export const ImagesToPdfTool: React.FC = () => {
               <select
                 value={pageSize}
                 onChange={(e) => setPageSize(e.target.value as any)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
               >
                 <option value="a4">A4 (Standard Document)</option>
                 <option value="letter">US Letter</option>
@@ -116,7 +120,7 @@ export const ImagesToPdfTool: React.FC = () => {
               <select
                 value={orientation}
                 onChange={(e) => setOrientation(e.target.value as any)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
               >
                 <option value="auto">Auto (Match Image)</option>
                 <option value="portrait">Portrait</option>
@@ -129,7 +133,7 @@ export const ImagesToPdfTool: React.FC = () => {
               <select
                 value={margin}
                 onChange={(e) => setMargin(Number(e.target.value))}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
               >
                 <option value={0}>No Margin (Edge-to-edge)</option>
                 <option value={15}>Normal (15 pt)</option>
@@ -142,7 +146,7 @@ export const ImagesToPdfTool: React.FC = () => {
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800 text-xs text-slate-400">
               <span className="font-semibold text-white">{images.length} Images Selected</span>
-              <label className="cursor-pointer text-rose-400 hover:text-rose-300 font-medium flex items-center gap-1">
+              <label className="cursor-pointer text-blue-400 hover:text-sky-300 font-medium flex items-center gap-1">
                 <Plus className="w-3.5 h-3.5" />
                 Add more images
                 <input
@@ -174,20 +178,20 @@ export const ImagesToPdfTool: React.FC = () => {
                       <button
                         onClick={() => moveImage(idx, 'up')}
                         disabled={idx === 0}
-                        className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white disabled:opacity-20"
+                        className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white disabled:opacity-20 cursor-pointer"
                       >
                         <ArrowUp className="w-3 h-3" />
                       </button>
                       <button
                         onClick={() => moveImage(idx, 'down')}
                         disabled={idx === images.length - 1}
-                        className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white disabled:opacity-20"
+                        className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white disabled:opacity-20 cursor-pointer"
                       >
                         <ArrowDown className="w-3 h-3" />
                       </button>
                       <button
                         onClick={() => removeImage(img.id)}
-                        className="p-1 rounded hover:bg-red-950/60 text-slate-400 hover:text-red-400"
+                        className="p-1 rounded hover:bg-red-950/60 text-slate-400 hover:text-red-400 cursor-pointer"
                       >
                         <Trash2 className="w-3 h-3" />
                       </button>
@@ -203,7 +207,7 @@ export const ImagesToPdfTool: React.FC = () => {
             <button
               onClick={handleConvert}
               disabled={isProcessing || images.length === 0}
-              className="px-6 py-2.5 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-950/40 transition-all flex items-center gap-2 disabled:opacity-40"
+              className="px-6 py-2.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-950/50 transition-all flex items-center gap-2 disabled:opacity-40 cursor-pointer"
             >
               {isProcessing ? (
                 <>
@@ -220,9 +224,26 @@ export const ImagesToPdfTool: React.FC = () => {
           </div>
 
           {successMessage && (
-            <div className="p-4 rounded-xl bg-emerald-950/30 border border-emerald-800/40 text-emerald-300 text-xs flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              {successMessage}
+            <div className="p-4 rounded-xl bg-emerald-950/30 border border-emerald-800/40 text-emerald-300 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{successMessage}</span>
+              </div>
+              {lastPdfBytes && (
+                <button
+                  onClick={() => downloadFile(lastPdfBytes, 'Converted_Images.pdf')}
+                  className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold flex items-center gap-1.5 self-start sm:self-auto shrink-0 shadow transition-colors cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download File Again
+                </button>
+              )}
+            </div>
+          )}
+
+          {errorMessage && (
+            <div className="p-4 rounded-xl bg-red-950/30 border border-red-800/40 text-red-300 text-xs flex items-center gap-2">
+              <span>{errorMessage}</span>
             </div>
           )}
         </div>

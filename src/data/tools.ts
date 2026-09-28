@@ -4,6 +4,7 @@ export const TOOLS: ToolDef[] = [
   // Organize & Edit
   {
     id: 'merge',
+    path: '/mergepdf',
     name: 'Merge PDF',
     tagline: 'Combine multiple PDFs in your chosen order',
     description: 'Merge two or more PDF files into a single, cohesive document without any page limits or watermarks.',
@@ -13,6 +14,7 @@ export const TOOLS: ToolDef[] = [
   },
   {
     id: 'split',
+    path: '/splitpdf',
     name: 'Split PDF',
     tagline: 'Extract specific pages or separate into chunks',
     description: 'Extract ranges (e.g. 1-3, 5), separate every page into individual files, or split into custom parts.',
@@ -21,6 +23,7 @@ export const TOOLS: ToolDef[] = [
   },
   {
     id: 'organize',
+    path: '/organizepdf',
     name: 'Organize & Rotate',
     tagline: 'Visual page grid with reorder, rotate & delete',
     description: 'View every page as a live preview. Rotate individual pages 90°, rearrange order, delete unwanted pages.',
@@ -30,6 +33,7 @@ export const TOOLS: ToolDef[] = [
   },
   {
     id: 'page-numbers',
+    path: '/pagenumbers',
     name: 'Page Numbers',
     tagline: 'Add custom numbering, headers & footers',
     description: 'Number your document pages with custom positioning (top, bottom, center, corners) and styling.',
@@ -38,6 +42,7 @@ export const TOOLS: ToolDef[] = [
   },
   {
     id: 'compress',
+    path: '/compresspdf',
     name: 'Compress PDF',
     tagline: 'Reduce file size while preserving quality',
     description: 'Optimize PDF structure and clean unnecessary streams for fast email attachments and uploads.',
@@ -48,6 +53,7 @@ export const TOOLS: ToolDef[] = [
   // Convert
   {
     id: 'images-to-pdf',
+    path: '/imagestopdf',
     name: 'Images to PDF',
     tagline: 'Convert JPG, PNG, WebP into clean PDF',
     description: 'Turn photos, scans, and graphic images into a single professional PDF with custom margins and sizes.',
@@ -57,6 +63,7 @@ export const TOOLS: ToolDef[] = [
   },
   {
     id: 'pdf-to-images',
+    path: '/pdftoimages',
     name: 'PDF to Images',
     tagline: 'Export pages as crystal-clear PNG or JPG',
     description: 'Render every PDF page into high-resolution images. Download individually or 1-click batch ZIP.',
@@ -65,6 +72,7 @@ export const TOOLS: ToolDef[] = [
   },
   {
     id: 'pdf-to-text',
+    path: '/pdftotext',
     name: 'PDF to Text',
     tagline: 'Extract text content with word counts',
     description: 'Quickly extract text from native PDFs with zero latency, ready to copy or download as TXT/MD.',
@@ -73,6 +81,7 @@ export const TOOLS: ToolDef[] = [
   },
   {
     id: 'text-to-pdf',
+    path: '/texttopdf',
     name: 'Text to PDF',
     tagline: 'Convert notes or markdown into formatted PDF',
     description: 'Write or paste notes and generate a styled, paginated PDF document with auto-wrapping.',
@@ -83,6 +92,7 @@ export const TOOLS: ToolDef[] = [
   // Annotate & Edit
   {
     id: 'annotate',
+    path: '/annotatepdf',
     name: 'Annotate & Sign',
     tagline: 'Add text, signatures, highlights and stamps',
     description: 'Draw signatures, place custom text labels, blackout private data, and export watermark-free.',
@@ -94,6 +104,7 @@ export const TOOLS: ToolDef[] = [
   // AI & OCR
   {
     id: 'ocr',
+    path: '/ocrpdf',
     name: 'AI OCR Digitizer',
     tagline: 'Extract text from scanned PDFs & handwriting',
     description: 'Gemini 3.8 Flash accurately reads scanned pages, photos, and handwriting into clean Markdown and tables.',
@@ -104,6 +115,7 @@ export const TOOLS: ToolDef[] = [
   },
   {
     id: 'ai-chat',
+    path: '/chatpdf',
     name: 'Chat with PDF',
     tagline: 'Ask questions, get citations & deep analysis',
     description: 'Conversational assistant grounded strictly in your document. Ask complex questions with citations.',
@@ -114,6 +126,7 @@ export const TOOLS: ToolDef[] = [
   },
   {
     id: 'ai-summarize',
+    path: '/summarizepdf',
     name: 'AI Document Summary',
     tagline: 'Executive summary, key metrics & action items',
     description: 'Instant multi-format executive summaries, critical takeaways, and actionable next steps.',
@@ -124,6 +137,7 @@ export const TOOLS: ToolDef[] = [
   },
   {
     id: 'ai-redact',
+    path: '/redactpdf',
     name: 'AI Smart Redact',
     tagline: 'Auto-detect and blackout sensitive PII data',
     description: 'Scans for emails, phone numbers, SSNs, credit cards, names, and addresses for instant permanent blackout.',
@@ -134,6 +148,7 @@ export const TOOLS: ToolDef[] = [
   },
   {
     id: 'ai-tables',
+    path: '/tablespdf',
     name: 'AI Table Extractor',
     tagline: 'Convert tables from PDF into CSV & JSON',
     description: 'Detects financial, statistical, and tabular data from documents and exports directly to CSV / JSON.',
@@ -144,6 +159,7 @@ export const TOOLS: ToolDef[] = [
   },
   {
     id: 'ai-translate',
+    path: '/translatepdf',
     name: 'AI Document Translate',
     tagline: 'Translate documents to 25+ global languages',
     description: 'Flawlessly translates document text while preserving structural layout, tables, and tone.',
@@ -154,6 +170,7 @@ export const TOOLS: ToolDef[] = [
   },
   {
     id: 'ai-study',
+    path: '/studypdf',
     name: 'AI Study & Flashcards',
     tagline: 'Generate flashcards, practice quizzes & notes',
     description: 'Turn textbook chapters, papers, or meeting notes into interactive flip flashcards and scored quizzes.',

@@ -18,6 +18,8 @@ export const PageNumbersTool: React.FC<PageNumbersToolProps> = ({ onSelectSample
   const [margin, setMargin] = useState(25);
   const [isProcessing, setIsProcessing] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [lastNumberedBytes, setLastNumberedBytes] = useState<Uint8Array | null>(null);
 
   const handleFileSelected = async (files: File[]) => {
     if (files.length === 0) return;
@@ -26,12 +28,15 @@ export const PageNumbersTool: React.FC<PageNumbersToolProps> = ({ onSelectSample
     const bytes = new Uint8Array(buffer);
     setFile({ name: f.name, bytes });
     setSuccessMessage(null);
+    setErrorMessage(null);
+    setLastNumberedBytes(null);
   };
 
   const handleApplyNumbers = async () => {
     if (!file) return;
     setIsProcessing(true);
     setSuccessMessage(null);
+    setErrorMessage(null);
     try {
       const numberedBytes = await addPageNumbers(file.bytes, {
         position,
@@ -40,10 +45,12 @@ export const PageNumbersTool: React.FC<PageNumbersToolProps> = ({ onSelectSample
         fontSize,
         margin,
       });
-      downloadFile(numberedBytes, `${file.name.replace('.pdf', '')}_numbered.pdf`);
-      setSuccessMessage('Successfully applied page numbers and downloaded!');
+      setLastNumberedBytes(numberedBytes);
+      const outName = `${file.name.replace('.pdf', '')}_numbered.pdf`;
+      downloadFile(numberedBytes, outName);
+      setSuccessMessage(`Successfully applied page numbers and downloaded ${outName}!`);
     } catch (err: any) {
-      alert(`Failed to add page numbers: ${err.message}`);
+      setErrorMessage(`Failed to add page numbers: ${err.message}`);
     } finally {
       setIsProcessing(false);
     }
@@ -69,10 +76,10 @@ export const PageNumbersTool: React.FC<PageNumbersToolProps> = ({ onSelectSample
         <div className="space-y-6">
           <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between text-xs">
             <div className="flex items-center gap-3">
-              <FileText className="w-4 h-4 text-rose-400" />
+              <FileText className="w-4 h-4 text-blue-400" />
               <span className="font-semibold text-white">{file.name}</span>
             </div>
-            <button onClick={() => setFile(null)} className="text-slate-400 hover:text-white">
+            <button onClick={() => setFile(null)} className="text-slate-400 hover:text-white cursor-pointer">
               Change PDF
             </button>
           </div>
@@ -84,7 +91,7 @@ export const PageNumbersTool: React.FC<PageNumbersToolProps> = ({ onSelectSample
                 <select
                   value={format}
                   onChange={(e) => setFormat(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
                 >
                   <option value="Page {page} of {total}">Page {"{page}"} of {"{total}"}</option>
                   <option value="{page} / {total}">{"{page}"} / {"{total}"}</option>
@@ -99,7 +106,7 @@ export const PageNumbersTool: React.FC<PageNumbersToolProps> = ({ onSelectSample
                 <select
                   value={position}
                   onChange={(e) => setPosition(e.target.value as any)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
                 >
                   <option value="bottom-center">Bottom Center (Standard)</option>
                   <option value="bottom-right">Bottom Right</option>
@@ -117,7 +124,7 @@ export const PageNumbersTool: React.FC<PageNumbersToolProps> = ({ onSelectSample
                   min={1}
                   value={startFrom}
                   onChange={(e) => setStartFrom(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
                 />
               </div>
 
@@ -127,7 +134,7 @@ export const PageNumbersTool: React.FC<PageNumbersToolProps> = ({ onSelectSample
                   <select
                     value={fontSize}
                     onChange={(e) => setFontSize(Number(e.target.value))}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
                   >
                     <option value={9}>Small (9 pt)</option>
                     <option value={10}>Normal (10 pt)</option>
@@ -136,7 +143,7 @@ export const PageNumbersTool: React.FC<PageNumbersToolProps> = ({ onSelectSample
                   <select
                     value={margin}
                     onChange={(e) => setMargin(Number(e.target.value))}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
                   >
                     <option value={15}>Tight (15 pt)</option>
                     <option value={25}>Normal (25 pt)</option>
@@ -149,7 +156,7 @@ export const PageNumbersTool: React.FC<PageNumbersToolProps> = ({ onSelectSample
             {/* Live Preview Sample */}
             <div className="p-3 bg-slate-950/80 rounded-xl border border-slate-800/80 text-xs">
               <span className="text-slate-400">Sample Page 1 Preview: </span>
-              <span className="font-mono text-rose-300 font-semibold">
+              <span className="font-mono text-sky-300 font-semibold">
                 {format.replace('{page}', startFrom.toString()).replace('{total}', (startFrom + 4).toString())}
               </span>
               <span className="text-slate-500 ml-2">({position})</span>
@@ -160,7 +167,7 @@ export const PageNumbersTool: React.FC<PageNumbersToolProps> = ({ onSelectSample
             <button
               onClick={handleApplyNumbers}
               disabled={isProcessing}
-              className="px-6 py-2.5 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-950/40 transition-all flex items-center gap-2 disabled:opacity-40"
+              className="px-6 py-2.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-950/50 transition-all flex items-center gap-2 disabled:opacity-40 cursor-pointer"
             >
               {isProcessing ? (
                 <>
@@ -177,9 +184,29 @@ export const PageNumbersTool: React.FC<PageNumbersToolProps> = ({ onSelectSample
           </div>
 
           {successMessage && (
-            <div className="p-4 rounded-xl bg-emerald-950/30 border border-emerald-800/40 text-emerald-300 text-xs flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              {successMessage}
+            <div className="p-4 rounded-xl bg-emerald-950/30 border border-emerald-800/40 text-emerald-300 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{successMessage}</span>
+              </div>
+              {lastNumberedBytes && (
+                <button
+                  onClick={() => {
+                    const outName = `${file.name.replace('.pdf', '')}_numbered.pdf`;
+                    downloadFile(lastNumberedBytes, outName);
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold flex items-center gap-1.5 self-start sm:self-auto shrink-0 shadow transition-colors cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download File Again
+                </button>
+              )}
+            </div>
+          )}
+
+          {errorMessage && (
+            <div className="p-4 rounded-xl bg-red-950/30 border border-red-800/40 text-red-300 text-xs flex items-center gap-2">
+              <span>{errorMessage}</span>
             </div>
           )}
         </div>

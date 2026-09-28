@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Table, Download, Loader2, FileText, Sparkles, Check, Copy } from 'lucide-react';
+import { Table, Download, Loader2, FileText, Sparkles, Check, Copy, CheckCircle2 } from 'lucide-react';
 import { requestExtractTables } from '../../services/aiService';
 import { extractTextFromPDF } from '../../services/pdfRenderer';
 import { downloadFile } from '../../services/pdfOperations';
@@ -16,6 +16,8 @@ export const AiTablesTool: React.FC<AiTablesToolProps> = ({ onSelectSample }) =>
   const [isProcessing, setIsProcessing] = useState(false);
   const [activeTableIndex, setActiveTableIndex] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
 
   const handleFileSelected = async (files: File[]) => {
     if (files.length === 0) return;
@@ -25,6 +27,8 @@ export const AiTablesTool: React.FC<AiTablesToolProps> = ({ onSelectSample }) =>
     setFile({ name: f.name, bytes });
     setIsProcessing(true);
     setTables([]);
+    setErrorMessage(null);
+    setDownloadSuccess(null);
 
     try {
       const { fullText } = await extractTextFromPDF(bytes);
@@ -32,21 +36,27 @@ export const AiTablesTool: React.FC<AiTablesToolProps> = ({ onSelectSample }) =>
       setTables(extracted);
       setActiveTableIndex(0);
     } catch (err: any) {
-      alert(`Table extraction failed: ${err.message}`);
+      setErrorMessage(`Table extraction failed: ${err.message}`);
     } finally {
       setIsProcessing(false);
     }
   };
 
   const handleDownloadCsv = (table: ExtractedTable) => {
+    const outName = `${(table.title || 'Table').replace(/\s+/g, '_')}.csv`;
     const blob = new Blob([table.csv], { type: 'text/csv;charset=utf-8' });
-    downloadFile(blob, `${(table.title || 'Table').replace(/\s+/g, '_')}.csv`, 'text/csv');
+    downloadFile(blob, outName, 'text/csv');
+    setDownloadSuccess(`Downloaded CSV: ${outName}`);
+    setTimeout(() => setDownloadSuccess(null), 5000);
   };
 
   const handleDownloadJson = (table: ExtractedTable) => {
+    const outName = `${(table.title || 'Table').replace(/\s+/g, '_')}.json`;
     const jsonStr = JSON.stringify(table, null, 2);
     const blob = new Blob([jsonStr], { type: 'application/json' });
-    downloadFile(blob, `${(table.title || 'Table').replace(/\s+/g, '_')}.json`, 'application/json');
+    downloadFile(blob, outName, 'application/json');
+    setDownloadSuccess(`Downloaded JSON: ${outName}`);
+    setTimeout(() => setDownloadSuccess(null), 5000);
   };
 
   const handleCopyCsv = (table: ExtractedTable) => {
@@ -60,7 +70,7 @@ export const AiTablesTool: React.FC<AiTablesToolProps> = ({ onSelectSample }) =>
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
       <div className="mb-6">
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-semibold mb-2">
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-cyan-300 text-xs font-semibold mb-2">
           <Sparkles className="w-3.5 h-3.5" />
           Powered by Gemini 3.8 Flash
         </div>
@@ -80,7 +90,7 @@ export const AiTablesTool: React.FC<AiTablesToolProps> = ({ onSelectSample }) =>
         />
       ) : isProcessing ? (
         <div className="p-16 text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-rose-500 mx-auto mb-3" />
+          <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-3" />
           <p className="text-sm font-semibold text-white">Extracting tables with Gemini...</p>
           <p className="text-xs text-slate-400">Parsing column boundaries, numbers, and headers.</p>
         </div>
@@ -88,7 +98,7 @@ export const AiTablesTool: React.FC<AiTablesToolProps> = ({ onSelectSample }) =>
         <div className="space-y-6">
           <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between text-xs">
             <div className="flex items-center gap-3">
-              <FileText className="w-4 h-4 text-rose-400" />
+              <FileText className="w-4 h-4 text-cyan-400" />
               <span className="font-semibold text-white">{file.name}</span>
               <span className="text-slate-400">· {tables.length} table(s) found</span>
             </div>
@@ -96,12 +106,27 @@ export const AiTablesTool: React.FC<AiTablesToolProps> = ({ onSelectSample }) =>
               onClick={() => {
                 setFile(null);
                 setTables([]);
+                setDownloadSuccess(null);
+                setErrorMessage(null);
               }}
               className="text-slate-400 hover:text-white"
             >
               Change PDF
             </button>
           </div>
+
+          {downloadSuccess && (
+            <div className="p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-800/40 text-emerald-300 text-xs flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>{downloadSuccess}</span>
+            </div>
+          )}
+
+          {errorMessage && (
+            <div className="p-3.5 rounded-xl bg-red-950/40 border border-red-800/40 text-red-300 text-xs flex items-center gap-2">
+              <span>{errorMessage}</span>
+            </div>
+          )}
 
           {tables.length === 0 ? (
             <div className="p-12 text-center bg-slate-900 border border-slate-800 rounded-2xl text-xs text-slate-400">
@@ -118,7 +143,7 @@ export const AiTablesTool: React.FC<AiTablesToolProps> = ({ onSelectSample }) =>
                       onClick={() => setActiveTableIndex(idx)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
                         activeTableIndex === idx
-                          ? 'bg-rose-600 text-white'
+                          ? 'bg-blue-600 text-white shadow'
                           : 'bg-slate-800 text-slate-400 hover:text-white'
                       }`}
                     >
@@ -148,7 +173,7 @@ export const AiTablesTool: React.FC<AiTablesToolProps> = ({ onSelectSample }) =>
                     </button>
                     <button
                       onClick={() => handleDownloadCsv(activeTable)}
-                      className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold flex items-center gap-1.5 text-xs shadow-md transition-all"
+                      className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold flex items-center gap-1.5 text-xs shadow-md shadow-blue-950/40 transition-all"
                     >
                       <Download className="w-3.5 h-3.5" />
                       Download CSV

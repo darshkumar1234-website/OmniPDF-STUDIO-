@@ -15,20 +15,22 @@ export const SplitTool: React.FC<SplitToolProps> = ({ onSelectSample }) => {
   const [selectedPages, setSelectedPages] = useState<number[]>([0]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleFileSelected = async (files: File[]) => {
     if (files.length === 0) return;
     const f = files[0];
     const buffer = await f.arrayBuffer();
     const bytes = new Uint8Array(buffer);
+    setErrorMessage(null);
+    setSuccessMessage(null);
     try {
       const doc = await loadPdfDocument(bytes);
       setFile({ name: f.name, bytes, pageCount: doc.numPages });
       setRangeInput(`1-${Math.min(doc.numPages, 3)}`);
       setSelectedPages(Array.from({ length: Math.min(doc.numPages, 3) }, (_, i) => i));
-      setSuccessMessage(null);
     } catch (err: any) {
-      alert(`Could not load PDF: ${err.message}`);
+      setErrorMessage(`Could not load PDF: ${err.message}`);
     }
   };
 
@@ -77,7 +79,7 @@ export const SplitTool: React.FC<SplitToolProps> = ({ onSelectSample }) => {
         setSuccessMessage(`Split into ${results.length} documents!`);
       }
     } catch (err: any) {
-      alert(`Split failed: ${err.message}`);
+      setErrorMessage(`Split failed: ${err.message}`);
     } finally {
       setIsProcessing(false);
     }
@@ -104,7 +106,7 @@ export const SplitTool: React.FC<SplitToolProps> = ({ onSelectSample }) => {
           {/* File Header */}
           <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <FileText className="w-5 h-5 text-rose-400" />
+              <FileText className="w-5 h-5 text-blue-400" />
               <div>
                 <p className="text-sm font-semibold text-white">{file.name}</p>
                 <p className="text-xs text-slate-400">{file.pageCount} Total Pages</p>
@@ -112,7 +114,7 @@ export const SplitTool: React.FC<SplitToolProps> = ({ onSelectSample }) => {
             </div>
             <button
               onClick={() => setFile(null)}
-              className="text-xs text-slate-400 hover:text-white px-2.5 py-1 rounded-lg bg-slate-800 transition-colors"
+              className="text-xs text-slate-400 hover:text-white px-2.5 py-1 rounded-lg bg-slate-800 transition-colors cursor-pointer"
             >
               Change File
             </button>
@@ -142,9 +144,9 @@ export const SplitTool: React.FC<SplitToolProps> = ({ onSelectSample }) => {
                 <button
                   key={m.id}
                   onClick={() => setMode(m.id as any)}
-                  className={`p-3.5 rounded-xl border text-left transition-all ${
+                  className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
                     mode === m.id
-                      ? 'border-rose-500 bg-rose-500/10 text-white'
+                      ? 'border-blue-500 bg-blue-500/10 text-white'
                       : 'border-slate-800 bg-slate-950/60 text-slate-400 hover:border-slate-700'
                   }`}
                 >
@@ -169,7 +171,7 @@ export const SplitTool: React.FC<SplitToolProps> = ({ onSelectSample }) => {
                   value={rangeInput}
                   onChange={(e) => handleRangeInputChange(e.target.value)}
                   placeholder="e.g. 1-3, 5"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 font-mono"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500 font-mono"
                 />
 
                 {/* Interactive Page Selector Chips */}
@@ -182,9 +184,9 @@ export const SplitTool: React.FC<SplitToolProps> = ({ onSelectSample }) => {
                         <button
                           key={i}
                           onClick={() => togglePageSelection(i)}
-                          className={`w-8 h-8 rounded-lg text-xs font-medium transition-all ${
+                          className={`w-8 h-8 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                             isSelected
-                              ? 'bg-rose-600 text-white font-bold shadow-md shadow-rose-950/50'
+                              ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-950/50'
                               : 'bg-slate-800/80 text-slate-400 hover:bg-slate-700 hover:text-white'
                           }`}
                         >
@@ -203,7 +205,7 @@ export const SplitTool: React.FC<SplitToolProps> = ({ onSelectSample }) => {
             <button
               onClick={handleSplit}
               disabled={isProcessing || (mode !== 'all_pages' && selectedPages.length === 0)}
-              className="px-6 py-2.5 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-950/40 transition-all flex items-center gap-2 disabled:opacity-40 disabled:pointer-events-none"
+              className="px-6 py-2.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-950/50 transition-all flex items-center gap-2 disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
             >
               {isProcessing ? (
                 <>
@@ -224,7 +226,13 @@ export const SplitTool: React.FC<SplitToolProps> = ({ onSelectSample }) => {
           {successMessage && (
             <div className="p-4 rounded-xl bg-emerald-950/30 border border-emerald-800/40 text-emerald-300 text-xs flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              {successMessage}
+              <span>{successMessage}</span>
+            </div>
+          )}
+
+          {errorMessage && (
+            <div className="p-4 rounded-xl bg-red-950/40 border border-red-800/40 text-red-300 text-xs flex items-center gap-2">
+              <span>{errorMessage}</span>
             </div>
           )}
         </div>

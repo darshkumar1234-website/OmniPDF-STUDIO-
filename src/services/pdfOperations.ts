@@ -2,18 +2,73 @@ import { PDFDocument, rgb, degrees, StandardFonts } from 'pdf-lib';
 import JSZip from 'jszip';
 
 /**
- * Trigger browser file download
+ * Trigger reliable browser file download across desktop, mobile, and sandboxed iframes.
  */
-export function downloadFile(data: Uint8Array | Blob, filename: string, mimeType: string = 'application/pdf') {
-  const blob = data instanceof Blob ? data : new Blob([data.buffer as ArrayBuffer], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
+export function downloadFile(
+  data: Uint8Array | Blob | ArrayBuffer | string,
+  filename: string,
+  mimeType: string = 'application/pdf'
+): string {
+  try {
+    let blob: Blob;
+
+    if (data instanceof Blob) {
+      blob = data;
+    } else if (typeof data === 'string') {
+      blob = new Blob([data], { type: mimeType });
+    } else if (data instanceof Uint8Array) {
+      // Ensure we extract a clean ArrayBuffer of exact length starting at offset 0
+      const cleanBytes = new Uint8Array(data.byteLength);
+      cleanBytes.set(data);
+      blob = new Blob([cleanBytes.buffer], { type: mimeType });
+    } else if (data instanceof ArrayBuffer) {
+      blob = new Blob([data], { type: mimeType });
+    } else {
+      blob = new Blob([data as unknown as BlobPart], { type: mimeType });
+    }
+
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.rel = 'noopener';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+
+    // Synthetic click for sandboxed/iframe compatibility
+    try {
+      const clickEvt = new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+      });
+      a.dispatchEvent(clickEvt);
+    } catch {
+      a.click();
+    }
+
+    setTimeout(() => {
+      if (document.body.contains(a)) {
+        document.body.removeChild(a);
+      }
+    }, 1000);
+
+    // Retain object URL for 5 minutes (300,000 ms) so the browser download manager
+    // or user "Save As..." dialog never fails due to premature URL revocation
+    setTimeout(() => {
+      try {
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        // ignore
+      }
+    }, 300000);
+
+    return url;
+  } catch (err) {
+    console.error('Download error:', err);
+    return '';
+  }
 }
 
 /**

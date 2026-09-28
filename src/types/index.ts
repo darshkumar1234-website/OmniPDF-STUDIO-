@@ -21,6 +21,7 @@ export type ToolId =
 
 export interface ToolDef {
   id: ToolId;
+  path: string;
   name: string;
   tagline: string;
   description: string;

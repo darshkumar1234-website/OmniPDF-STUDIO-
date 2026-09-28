@@ -17,6 +17,7 @@ export const PdfToImagesTool: React.FC<PdfToImagesToolProps> = ({ onSelectSample
     { pageNum: number; dataUrl: string; blob: Blob }[]
   >([]);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleFileSelected = async (files: File[]) => {
     if (files.length === 0) return;
@@ -26,18 +27,20 @@ export const PdfToImagesTool: React.FC<PdfToImagesToolProps> = ({ onSelectSample
     setFile({ name: f.name, bytes });
     setConvertedImages([]);
     setSuccessMessage(null);
+    setErrorMessage(null);
   };
 
   const handleStartConversion = async () => {
     if (!file) return;
     setIsConverting(true);
     setSuccessMessage(null);
+    setErrorMessage(null);
     try {
       const results = await convertPdfToImages(file.bytes, format, dpi);
       setConvertedImages(results);
       setSuccessMessage(`Successfully converted ${results.length} pages to ${format.toUpperCase()}!`);
     } catch (err: any) {
-      alert(`Conversion failed: ${err.message}`);
+      setErrorMessage(`Conversion failed: ${err.message}`);
     } finally {
       setIsConverting(false);
     }
@@ -82,7 +85,7 @@ export const PdfToImagesTool: React.FC<PdfToImagesToolProps> = ({ onSelectSample
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center gap-3">
-                <FileText className="w-5 h-5 text-rose-400" />
+                <FileText className="w-5 h-5 text-blue-400" />
                 <span className="text-sm font-semibold text-white">{file.name}</span>
               </div>
               <button
@@ -90,7 +93,7 @@ export const PdfToImagesTool: React.FC<PdfToImagesToolProps> = ({ onSelectSample
                   setFile(null);
                   setConvertedImages([]);
                 }}
-                className="text-xs text-slate-400 hover:text-white px-2.5 py-1 rounded-lg bg-slate-800 transition-colors"
+                className="text-xs text-slate-400 hover:text-white px-2.5 py-1 rounded-lg bg-slate-800 transition-colors cursor-pointer"
               >
                 Change PDF
               </button>
@@ -102,7 +105,7 @@ export const PdfToImagesTool: React.FC<PdfToImagesToolProps> = ({ onSelectSample
                 <select
                   value={format}
                   onChange={(e) => setFormat(e.target.value as any)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
                 >
                   <option value="png">PNG (Lossless & Sharpest)</option>
                   <option value="jpeg">JPEG (Compressed & Smaller)</option>
@@ -114,7 +117,7 @@ export const PdfToImagesTool: React.FC<PdfToImagesToolProps> = ({ onSelectSample
                 <select
                   value={dpi}
                   onChange={(e) => setDpi(Number(e.target.value))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
                 >
                   <option value={1.5}>Standard Screen (~110 DPI)</option>
                   <option value={2.0}>High Definition (~150 DPI)</option>
@@ -126,7 +129,7 @@ export const PdfToImagesTool: React.FC<PdfToImagesToolProps> = ({ onSelectSample
                 <button
                   onClick={handleStartConversion}
                   disabled={isConverting}
-                  className="w-full px-5 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-950/40 transition-all flex items-center justify-center gap-2 disabled:opacity-40"
+                  className="w-full px-5 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-950/50 transition-all flex items-center justify-center gap-2 disabled:opacity-40 cursor-pointer"
                 >
                   {isConverting ? (
                     <>
@@ -153,7 +156,7 @@ export const PdfToImagesTool: React.FC<PdfToImagesToolProps> = ({ onSelectSample
                 </span>
                 <button
                   onClick={handleDownloadAllZip}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md transition-all flex items-center gap-1.5"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5" />
                   Download All as ZIP
@@ -178,7 +181,7 @@ export const PdfToImagesTool: React.FC<PdfToImagesToolProps> = ({ onSelectSample
                       <span className="font-medium text-slate-300">Page {img.pageNum}</span>
                       <button
                         onClick={() => handleDownloadSingle(img)}
-                        className="p-1 rounded hover:bg-slate-800 text-rose-400 hover:text-rose-300"
+                        className="p-1 rounded hover:bg-slate-800 text-blue-400 hover:text-sky-300 cursor-pointer"
                         title="Download Image"
                       >
                         <Download className="w-3.5 h-3.5" />
@@ -193,7 +196,13 @@ export const PdfToImagesTool: React.FC<PdfToImagesToolProps> = ({ onSelectSample
           {successMessage && (
             <div className="p-4 rounded-xl bg-emerald-950/30 border border-emerald-800/40 text-emerald-300 text-xs flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              {successMessage}
+              <span>{successMessage}</span>
+            </div>
+          )}
+
+          {errorMessage && (
+            <div className="p-4 rounded-xl bg-red-950/30 border border-red-800/40 text-red-300 text-xs flex items-center gap-2">
+              <span>{errorMessage}</span>
             </div>
           )}
         </div>
