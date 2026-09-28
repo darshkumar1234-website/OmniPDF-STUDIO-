@@ -132,7 +132,7 @@ export const AiRedactTool: React.FC<AiRedactToolProps> = ({ onSelectSample }) =>
       ) : isScanning ? (
         <div className="p-16 text-center">
           <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-3" />
-          <p className="text-sm font-semibold text-white">Auditing document with Gemini...</p>
+          <p className="text-sm font-semibold text-white">Auditing document with Omni AI...</p>
           <p className="text-xs text-slate-400">Checking for emails, SSNs, financial data, and PII.</p>
         </div>
       ) : (

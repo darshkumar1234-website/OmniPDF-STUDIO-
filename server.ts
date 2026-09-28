@@ -504,6 +504,77 @@ ${text.slice(0, 50000)}`;
   }
 });
 
+const SEO_DATA: Record<string, { title: string; description: string }> = {
+  '/mergepdf': {
+    title: 'Merge PDF Online Free – Combine Multiple PDFs | OmniPDF Studio',
+    description: 'Combine multiple PDF files into one clean document in seconds. Reorder pages freely with zero file size limits, zero watermarks, and 100% browser privacy.',
+  },
+  '/splitpdf': {
+    title: 'Split PDF Online Free – Extract Pages & Split Files | OmniPDF Studio',
+    description: 'Extract pages, split PDF by custom ranges, or burst into individual files. 100% free, private client-side processing with zero watermarks and no limits.',
+  },
+  '/organizepdf': {
+    title: 'Organize & Rotate PDF Pages Online Free | OmniPDF Studio',
+    description: 'Reorder, rotate, and delete PDF pages with an interactive visual page grid. 100% free client-side processing with instant download and zero watermarks.',
+  },
+  '/pagenumbers': {
+    title: 'Add Page Numbers to PDF Online Free | OmniPDF Studio',
+    description: 'Add custom page numbers, headers, and footers to your PDF documents. Select custom positions, formats, and fonts with instant watermark-free export.',
+  },
+  '/compresspdf': {
+    title: 'Compress PDF Online – Reduce PDF File Size | OmniPDF Studio',
+    description: 'Shrink and optimize PDF file sizes for fast email attachments and uploads without losing visual clarity. 100% private in-browser compression.',
+  },
+  '/imagestopdf': {
+    title: 'Convert JPG & PNG Images to PDF Online Free | OmniPDF Studio',
+    description: 'Convert JPG, PNG, and WebP images into clean, formatted PDF documents. Custom page margins, orientations, and instant download with zero watermarks.',
+  },
+  '/pdftoimages': {
+    title: 'Convert PDF to Images (PNG & JPG) High Res | OmniPDF Studio',
+    description: 'Convert PDF pages into crystal-clear PNG and JPG images. Download single pages or 1-click batch ZIP archives with full resolution and privacy.',
+  },
+  '/pdftotext': {
+    title: 'Extract Text from PDF Online Free (TXT & MD) | OmniPDF Studio',
+    description: 'Extract full text from PDF documents with page numbers and word counts. Copy to clipboard or download as TXT and Markdown with zero latency.',
+  },
+  '/texttopdf': {
+    title: 'Convert Text & Notes to Formatted PDF Free | OmniPDF Studio',
+    description: 'Convert plain text, notes, and meeting minutes into beautifully formatted, paginated PDF files with custom typography and instant download.',
+  },
+  '/annotatepdf': {
+    title: 'Annotate & Sign PDF Online Free – Draw & Type | OmniPDF Studio',
+    description: 'Draw e-signatures, add custom text annotations, place stamps, and highlight PDF documents online without printing or scanning. 100% free and private.',
+  },
+  '/ocrpdf': {
+    title: 'AI OCR PDF Scanner – Extract Scanned Text & Handwriting | OmniPDF Studio',
+    description: 'Digitize scanned PDFs, photos, and handwriting into editable text and tables with Gemini 3.8 Flash AI OCR. Fast, accurate, and watermark-free exports.',
+  },
+  '/chatpdf': {
+    title: 'Chat with PDF AI – Ask Document Questions & Citations | OmniPDF Studio',
+    description: 'Ask questions and get instant cited answers from your PDF documents powered by Gemini 3.8 Flash AI. Deep document comprehension with 100% privacy.',
+  },
+  '/summarizepdf': {
+    title: 'AI PDF Summarizer – Key Takeaways & Action Items | OmniPDF Studio',
+    description: 'Generate executive summaries, key takeaways, entities, and strategic action items from long PDF reports using Gemini 3.8 Flash AI. Instant exports.',
+  },
+  '/redactpdf': {
+    title: 'AI PDF Redaction – Auto-Blackout Sensitive PII Data | OmniPDF Studio',
+    description: 'Automatically detect and permanently blackout emails, SSNs, credit card numbers, and confidential PII from PDF documents for GDPR & HIPAA compliance.',
+  },
+  '/tablespdf': {
+    title: 'AI PDF Table Extractor – Export Tables to CSV & JSON | OmniPDF Studio',
+    description: 'Extract financial, scientific, and tabular data from PDF files directly into clean CSV spreadsheets and structured JSON with Gemini 3.8 Flash AI.',
+  },
+  '/translatepdf': {
+    title: 'Translate PDF Online Free – 25+ Global Languages | OmniPDF Studio',
+    description: 'Translate PDF documents into Spanish, French, German, Japanese, Chinese, Arabic and 20+ languages while preserving structural layout and tables.',
+  },
+  '/studypdf': {
+    title: 'AI PDF Flashcards & Quiz Generator for Students | OmniPDF Studio',
+    description: 'Transform textbook chapters and research papers into interactive flip flashcards, scored practice quizzes, and key revision notes with Gemini 3.8 Flash AI.',
+  },
+};
+
 // Vite integration
 async function startServer() {
   if (!isProduction) {
@@ -515,9 +586,28 @@ async function startServer() {
   } else {
     const distPath = path.resolve(process.cwd(), 'dist');
     if (fs.existsSync(distPath)) {
-      app.use(express.static(distPath));
-      app.get('*', (_req, res) => {
-        res.sendFile(path.join(distPath, 'index.html'));
+      app.use(express.static(distPath, { index: false }));
+      app.get('*', (req, res) => {
+        const indexPath = path.join(distPath, 'index.html');
+        if (!fs.existsSync(indexPath)) {
+          return res.status(404).send('Not found');
+        }
+        let html = fs.readFileSync(indexPath, 'utf-8');
+        const seo = SEO_DATA[req.path.toLowerCase()];
+        if (seo) {
+          const origin = req.protocol + '://' + req.get('host');
+          const fullUrl = `${origin}${req.path}`;
+          html = html
+            .replace(/<title>.*?<\/title>/i, `<title>${seo.title}</title>`)
+            .replace(/<meta\s+name="description"\s+content=".*?"\s*\/?>/i, `<meta name="description" content="${seo.description}" />`)
+            .replace(/<meta\s+property="og:title"\s+content=".*?"\s*\/?>/i, `<meta property="og:title" content="${seo.title}" />`)
+            .replace(/<meta\s+property="og:description"\s+content=".*?"\s*\/?>/i, `<meta property="og:description" content="${seo.description}" />`)
+            .replace(/<meta\s+name="twitter:title"\s+content=".*?"\s*\/?>/i, `<meta name="twitter:title" content="${seo.title}" />`)
+            .replace(/<meta\s+name="twitter:description"\s+content=".*?"\s*\/?>/i, `<meta name="twitter:description" content="${seo.description}" />`);
+          html = html.replace('</head>', `<meta property="og:url" content="${fullUrl}" />\n    <link rel="canonical" href="${fullUrl}" />\n  </head>`);
+        }
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.send(html);
       });
     }
   }

@@ -72,6 +72,51 @@ export function downloadFile(
 }
 
 /**
+ * Sanitize and validate PDF bytes before parsing.
+ * - Handles empty or detached ArrayBuffers
+ * - Finds and trims leading BOM or scanner junk before '%PDF-'
+ */
+export function sanitizePdfBytes(rawBytes: Uint8Array): Uint8Array {
+  if (!rawBytes || rawBytes.byteLength === 0) {
+    throw new Error('PDF file buffer is empty (0 bytes). Please ensure a valid PDF document was selected.');
+  }
+
+  // Ensure contiguous clean buffer
+  const bytes = new Uint8Array(rawBytes.byteLength);
+  bytes.set(rawBytes);
+
+  // Search for '%PDF-' (0x25, 0x50, 0x44, 0x46, 0x2D)
+  const header = [0x25, 0x50, 0x44, 0x46, 0x2d];
+  const searchLimit = Math.min(bytes.length - 4, 8192);
+  let startIndex = -1;
+
+  for (let i = 0; i < searchLimit; i++) {
+    if (
+      bytes[i] === header[0] &&
+      bytes[i + 1] === header[1] &&
+      bytes[i + 2] === header[2] &&
+      bytes[i + 3] === header[3] &&
+      bytes[i + 4] === header[4]
+    ) {
+      startIndex = i;
+      break;
+    }
+  }
+
+  if (startIndex === -1) {
+    // If not found in the first 8KB, return as-is
+    return bytes;
+  }
+
+  if (startIndex > 0) {
+    // Trim leading UTF-8 BOM, junk bytes, or scanner headers
+    return bytes.slice(startIndex);
+  }
+
+  return bytes;
+}
+
+/**
  * Merge multiple PDF files into a single PDF
  */
 export async function mergePDFs(files: { name: string; bytes: Uint8Array }[]): Promise<Uint8Array> {
@@ -80,7 +125,8 @@ export async function mergePDFs(files: { name: string; bytes: Uint8Array }[]): P
   const mergedDoc = await PDFDocument.create();
 
   for (const file of files) {
-    const srcDoc = await PDFDocument.load(file.bytes, { ignoreEncryption: true });
+    const cleanBytes = sanitizePdfBytes(file.bytes);
+    const srcDoc = await PDFDocument.load(cleanBytes, { ignoreEncryption: true });
     const pageIndices = srcDoc.getPageIndices();
     const copiedPages = await mergedDoc.copyPages(srcDoc, pageIndices);
     copiedPages.forEach((page) => mergedDoc.addPage(page));
@@ -123,7 +169,8 @@ export async function splitPDF(
   ranges: string,
   mode: 'extract_selected' | 'split_ranges' | 'all_pages'
 ): Promise<{ filename: string; bytes: Uint8Array }[]> {
-  const srcDoc = await PDFDocument.load(srcBytes, { ignoreEncryption: true });
+  const cleanBytes = sanitizePdfBytes(srcBytes);
+  const srcDoc = await PDFDocument.load(cleanBytes, { ignoreEncryption: true });
   const totalPages = srcDoc.getPageCount();
   const results: { filename: string; bytes: Uint8Array }[] = [];
 
@@ -170,7 +217,8 @@ export async function reorderAndRotatePDF(
   srcBytes: Uint8Array,
   pageConfigs: { originalIndex: number; rotation: number; isDeleted?: boolean }[]
 ): Promise<Uint8Array> {
-  const srcDoc = await PDFDocument.load(srcBytes, { ignoreEncryption: true });
+  const cleanBytes = sanitizePdfBytes(srcBytes);
+  const srcDoc = await PDFDocument.load(cleanBytes, { ignoreEncryption: true });
   const newDoc = await PDFDocument.create();
 
   const activePages = pageConfigs.filter((p) => !p.isDeleted);
@@ -277,7 +325,8 @@ export async function addPageNumbers(
     margin: number;
   }
 ): Promise<Uint8Array> {
-  const pdfDoc = await PDFDocument.load(srcBytes, { ignoreEncryption: true });
+  const cleanBytes = sanitizePdfBytes(srcBytes);
+  const pdfDoc = await PDFDocument.load(cleanBytes, { ignoreEncryption: true });
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const totalPages = pdfDoc.getPageCount();
 
@@ -446,7 +495,8 @@ export async function applyAnnotationsToPDF(
     }[]
   >
 ): Promise<Uint8Array> {
-  const pdfDoc = await PDFDocument.load(srcBytes, { ignoreEncryption: true });
+  const cleanBytes = sanitizePdfBytes(srcBytes);
+  const pdfDoc = await PDFDocument.load(cleanBytes, { ignoreEncryption: true });
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
   for (const pageIdxStr of Object.keys(annotationsByPage)) {

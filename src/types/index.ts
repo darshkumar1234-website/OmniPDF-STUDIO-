@@ -29,6 +29,9 @@ export interface ToolDef {
   icon: string;
   badge?: string;
   isAi?: boolean;
+  seoTitle?: string;
+  metaDescription?: string;
+  keywords?: string[];
 }
 
 export interface UploadedFile {

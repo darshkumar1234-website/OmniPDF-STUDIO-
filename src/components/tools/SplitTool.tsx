@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { Scissors, Download, Loader2, CheckCircle2, FileText, RefreshCw } from 'lucide-react';
 import { splitPDF, downloadFile, createZipDownload, parsePageRange } from '../../services/pdfOperations';
 import { loadPdfDocument } from '../../services/pdfRenderer';
+import { createSamplePdf } from '../../utils/samplePdfs';
 import { Dropzone } from '../Dropzone';
 
 interface SplitToolProps {
-  onSelectSample: (type: 'contract' | 'invoice' | 'report') => void;
+  onSelectSample?: (type: 'contract' | 'invoice' | 'report') => void;
 }
 
-export const SplitTool: React.FC<SplitToolProps> = ({ onSelectSample }) => {
+export const SplitTool: React.FC<SplitToolProps> = () => {
   const [file, setFile] = useState<{ name: string; bytes: Uint8Array; pageCount: number } | null>(null);
   const [mode, setMode] = useState<'extract_selected' | 'split_ranges' | 'all_pages'>('extract_selected');
   const [rangeInput, setRangeInput] = useState('1');
@@ -20,17 +21,36 @@ export const SplitTool: React.FC<SplitToolProps> = ({ onSelectSample }) => {
   const handleFileSelected = async (files: File[]) => {
     if (files.length === 0) return;
     const f = files[0];
-    const buffer = await f.arrayBuffer();
-    const bytes = new Uint8Array(buffer);
-    setErrorMessage(null);
-    setSuccessMessage(null);
     try {
-      const doc = await loadPdfDocument(bytes);
+      const buffer = await f.arrayBuffer();
+      const bytes = new Uint8Array(buffer.byteLength);
+      bytes.set(new Uint8Array(buffer));
+      setErrorMessage(null);
+      setSuccessMessage(null);
+      const doc = await loadPdfDocument(new Uint8Array(bytes));
       setFile({ name: f.name, bytes, pageCount: doc.numPages });
       setRangeInput(`1-${Math.min(doc.numPages, 3)}`);
       setSelectedPages(Array.from({ length: Math.min(doc.numPages, 3) }, (_, i) => i));
     } catch (err: any) {
       setErrorMessage(`Could not load PDF: ${err.message}`);
+    }
+  };
+
+  const handleLoadSample = async (type: 'contract' | 'invoice' | 'report' = 'contract') => {
+    setIsProcessing(true);
+    setErrorMessage(null);
+    try {
+      const sample = await createSamplePdf(type);
+      const cleanBytes = new Uint8Array(sample.bytes.byteLength);
+      cleanBytes.set(sample.bytes);
+      const doc = await loadPdfDocument(new Uint8Array(cleanBytes));
+      setFile({ name: sample.name, bytes: cleanBytes, pageCount: doc.numPages });
+      setRangeInput(`1-${Math.min(doc.numPages, 2)}`);
+      setSelectedPages(Array.from({ length: Math.min(doc.numPages, 2) }, (_, i) => i));
+    } catch (err: any) {
+      setErrorMessage(`Failed to load sample: ${err.message}`);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -99,7 +119,7 @@ export const SplitTool: React.FC<SplitToolProps> = ({ onSelectSample }) => {
           title="Select a PDF to split"
           subtitle="Choose page ranges or burst into separate documents"
           onFilesSelected={handleFileSelected}
-          onSelectSample={onSelectSample}
+          onSelectSample={handleLoadSample}
         />
       ) : (
         <div className="space-y-6">

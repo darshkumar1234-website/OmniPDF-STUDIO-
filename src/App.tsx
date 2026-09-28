@@ -5,6 +5,7 @@ import { ToolCategory, ToolId, ToolDef } from './types';
 import { Header } from './components/Header';
 import { ToolGrid } from './components/ToolGrid';
 import { FeaturePageLayout } from './components/FeaturePageLayout';
+import { SeoHead } from './components/SeoHead';
 import { createSamplePdf } from './utils/samplePdfs';
 
 // Tools
@@ -87,11 +88,28 @@ export default function App() {
           <Route
             path="/"
             element={
-              <ToolGrid
-                tools={filteredTools}
-                activeCategory={activeCategory}
-                onSelectSample={handleSelectSample}
-              />
+              <>
+                <SeoHead
+                  title="OmniPDF Studio – 100% Free AI PDF Suite & Tools"
+                  description="All-in-one 100% free PDF toolkit: merge, split, convert without watermarks, OCR text extraction, visual editor, page organizer, and AI document intelligence."
+                  path="/"
+                  keywords={[
+                    'pdf tools',
+                    'free pdf editor',
+                    'merge pdf',
+                    'split pdf',
+                    'ai ocr',
+                    'gemini pdf',
+                    'convert pdf online',
+                  ]}
+                  isAi
+                />
+                <ToolGrid
+                  tools={filteredTools}
+                  activeCategory={activeCategory}
+                  onSelectSample={handleSelectSample}
+                />
+              </>
             }
           />
 

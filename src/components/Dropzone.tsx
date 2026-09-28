@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react';
-import { Upload, FileUp, Sparkles } from 'lucide-react';
+import { Upload, FileUp, Sparkles, ArrowRight, RefreshCw } from 'lucide-react';
+import { PdfThumbnailPreview } from './PdfThumbnailPreview';
 
-interface DropzoneProps {
+export interface DropzoneProps {
   onFilesSelected: (files: File[]) => void;
   accept?: string;
   multiple?: boolean;
@@ -9,6 +10,8 @@ interface DropzoneProps {
   subtitle?: string;
   onSelectSample?: (type: 'contract' | 'invoice' | 'report') => void;
   isAi?: boolean;
+  /** Whether to show thumbnail preview before confirming processing */
+  previewBeforeProcess?: boolean;
 }
 
 export const Dropzone: React.FC<DropzoneProps> = ({
@@ -19,8 +22,10 @@ export const Dropzone: React.FC<DropzoneProps> = ({
   subtitle = 'Fast & private client-side processing · No size limits · 100% free',
   onSelectSample,
   isAi = false,
+  previewBeforeProcess = true,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
+  const [stagedFiles, setStagedFiles] = useState<File[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -37,16 +42,98 @@ export const Dropzone: React.FC<DropzoneProps> = ({
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const filesArray = Array.from(e.dataTransfer.files);
-      onFilesSelected(filesArray);
+      if (previewBeforeProcess) {
+        setStagedFiles(filesArray);
+      } else {
+        onFilesSelected(filesArray);
+      }
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const filesArray = Array.from(e.target.files);
-      onFilesSelected(filesArray);
+      if (previewBeforeProcess) {
+        setStagedFiles(filesArray);
+      } else {
+        onFilesSelected(filesArray);
+      }
     }
   };
+
+  const handleConfirmProcessing = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (stagedFiles.length > 0) {
+      onFilesSelected(stagedFiles);
+    }
+  };
+
+  const handleClearStaged = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setStagedFiles([]);
+    if (inputRef.current) inputRef.current.value = '';
+  };
+
+  // If a file is staged and preview is enabled, display the document preview before processing
+  if (stagedFiles.length > 0 && previewBeforeProcess) {
+    const isSingle = stagedFiles.length === 1;
+    const primaryFile = stagedFiles[0];
+
+    return (
+      <div className="relative rounded-3xl border border-blue-900/40 bg-gradient-to-br from-[#0c1633] via-[#091126] to-[#070b14] p-6 sm:p-10 shadow-2xl text-center flex flex-col items-center justify-center animate-in fade-in duration-200">
+        <div className="mb-4">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/25 text-cyan-300 text-xs font-semibold mb-2">
+            <Sparkles className="w-3.5 h-3.5" />
+            Document Ready for Processing
+          </div>
+          <h3 className="text-xl font-bold text-white mb-1">
+            {isSingle ? 'Review Document Before Processing' : `Review ${stagedFiles.length} Selected Documents`}
+          </h3>
+          <p className="text-xs text-slate-400 max-w-md mx-auto">
+            View the live page thumbnail below to verify your document before proceeding with {isAi ? 'Omni AI' : 'processing'}.
+          </p>
+        </div>
+
+        {/* Thumbnail Preview(s) */}
+        <div className="flex flex-wrap items-center justify-center gap-4 my-4 max-w-4xl w-full">
+          {stagedFiles.slice(0, 3).map((f, idx) => (
+            <PdfThumbnailPreview
+              key={idx}
+              file={f}
+              size={isSingle ? 'lg' : 'sm'}
+              onRemove={handleClearStaged}
+            />
+          ))}
+          {stagedFiles.length > 3 && (
+            <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 text-xs text-slate-400 flex items-center justify-center">
+              +{stagedFiles.length - 3} more files selected
+            </div>
+          )}
+        </div>
+
+        {/* Confirm or Change Actions */}
+        <div className="flex flex-wrap items-center justify-center gap-3 mt-4 pt-4 border-t border-slate-800/80 w-full max-w-md">
+          <button
+            type="button"
+            onClick={handleConfirmProcessing}
+            className="px-6 py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-950/60 transition-all flex items-center gap-2 cursor-pointer"
+          >
+            <span>Confirm & Process {isSingle ? 'Document' : `${stagedFiles.length} Files`}</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+
+          <button
+            type="button"
+            onClick={handleClearStaged}
+            className="px-4 py-2.5 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors flex items-center gap-1.5 cursor-pointer"
+          >
+            <RefreshCw className="w-3.5 h-3.5 text-slate-400" />
+            Change File
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -127,3 +214,5 @@ export const Dropzone: React.FC<DropzoneProps> = ({
     </div>
   );
 };
+
+export const FileDrop = Dropzone;

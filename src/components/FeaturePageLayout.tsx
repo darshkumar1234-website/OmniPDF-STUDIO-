@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ToolDef } from '../types';
 import { TOOLS } from '../data/tools';
 import { ToolIcon } from './ToolIcon';
+import { SeoHead } from './SeoHead';
 import {
   ChevronRight,
   ShieldCheck,
@@ -19,17 +20,27 @@ interface FeaturePageLayoutProps {
 }
 
 export const FeaturePageLayout: React.FC<FeaturePageLayoutProps> = ({ tool, children }) => {
-  // Update document title for this specific web page
   useEffect(() => {
-    document.title = `${tool.name} - 100% Free Online | OmniPDF Studio`;
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   }, [tool]);
 
   // Related tools from the same category
   const relatedTools = TOOLS.filter((t) => t.category === tool.category && t.id !== tool.id).slice(0, 4);
 
+  const seoTitle = tool.seoTitle || `${tool.name} Online Free – OmniPDF Studio`;
+  const metaDescription = tool.metaDescription || tool.description;
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 animate-in fade-in duration-200">
+      {/* Dynamic SEO, OpenGraph and Twitter Metadata */}
+      <SeoHead
+        title={seoTitle}
+        description={metaDescription}
+        path={tool.path}
+        keywords={tool.keywords}
+        isAi={tool.isAi}
+      />
+
       {/* Top Breadcrumb & Page Meta */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6 pb-4 border-b border-blue-950/60 text-xs text-slate-400">
         <div className="flex items-center gap-1.5 flex-wrap">

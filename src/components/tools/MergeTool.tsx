@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { Upload, Trash2, ArrowUp, ArrowDown, FileText, CheckCircle2, Loader2, Download, Plus } from 'lucide-react';
 import { mergePDFs, downloadFile } from '../../services/pdfOperations';
 import { loadPdfDocument } from '../../services/pdfRenderer';
+import { createSamplePdf } from '../../utils/samplePdfs';
 import { Dropzone } from '../Dropzone';
 
 interface MergeToolProps {
-  onSelectSample: (type: 'contract' | 'invoice' | 'report') => void;
+  onSelectSample?: (type: 'contract' | 'invoice' | 'report') => void;
 }
 
 interface MergeItem {
@@ -16,7 +17,7 @@ interface MergeItem {
   pageCount: number;
 }
 
-export const MergeTool: React.FC<MergeToolProps> = ({ onSelectSample }) => {
+export const MergeTool: React.FC<MergeToolProps> = () => {
   const [files, setFiles] = useState<MergeItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [outputName, setOutputName] = useState('Merged_Document.pdf');
@@ -26,12 +27,16 @@ export const MergeTool: React.FC<MergeToolProps> = ({ onSelectSample }) => {
 
   const handleFilesSelected = async (newFiles: File[]) => {
     const items: MergeItem[] = [];
+    setErrorMessage(null);
     for (const f of newFiles) {
       if (f.type !== 'application/pdf' && !f.name.endsWith('.pdf')) continue;
-      const buffer = await f.arrayBuffer();
-      const bytes = new Uint8Array(buffer);
       try {
-        const doc = await loadPdfDocument(bytes);
+        const buffer = await f.arrayBuffer();
+        // Allocate a dedicated, standalone Uint8Array copy
+        const bytes = new Uint8Array(buffer.byteLength);
+        bytes.set(new Uint8Array(buffer));
+
+        const doc = await loadPdfDocument(new Uint8Array(bytes));
         items.push({
           id: `${Date.now()}_${Math.random()}`,
           name: f.name,
@@ -39,12 +44,54 @@ export const MergeTool: React.FC<MergeToolProps> = ({ onSelectSample }) => {
           bytes,
           pageCount: doc.numPages,
         });
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error loading PDF:', err);
+        setErrorMessage(`Failed to read "${f.name}": ${err.message || 'Corrupted or unreadable PDF'}`);
       }
     }
     setFiles((prev) => [...prev, ...items]);
     setSuccessMessage(null);
+  };
+
+  const handleLoadSample = async () => {
+    setIsProcessing(true);
+    setErrorMessage(null);
+    try {
+      const sample1 = await createSamplePdf('contract');
+      const sample2 = await createSamplePdf('invoice');
+
+      const bytes1 = new Uint8Array(sample1.bytes.byteLength);
+      bytes1.set(sample1.bytes);
+
+      const bytes2 = new Uint8Array(sample2.bytes.byteLength);
+      bytes2.set(sample2.bytes);
+
+      const doc1 = await loadPdfDocument(bytes1);
+      const doc2 = await loadPdfDocument(bytes2);
+
+      const items: MergeItem[] = [
+        {
+          id: `sample_${Date.now()}_1`,
+          name: sample1.name,
+          size: sample1.bytes.byteLength,
+          bytes: bytes1,
+          pageCount: doc1.numPages,
+        },
+        {
+          id: `sample_${Date.now()}_2`,
+          name: sample2.name,
+          size: sample2.bytes.byteLength,
+          bytes: bytes2,
+          pageCount: doc2.numPages,
+        },
+      ];
+      setFiles((prev) => [...prev, ...items]);
+      setSuccessMessage('Loaded 2 sample documents! Click "Merge & Download PDF" below to combine them.');
+    } catch (err: any) {
+      setErrorMessage(`Failed to load samples: ${err.message}`);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const moveItem = (index: number, direction: 'up' | 'down') => {
@@ -96,7 +143,7 @@ export const MergeTool: React.FC<MergeToolProps> = ({ onSelectSample }) => {
           title="Select or drop 2 or more PDF files to merge"
           subtitle="Files will be merged in the exact order you select"
           onFilesSelected={handleFilesSelected}
-          onSelectSample={onSelectSample}
+          onSelectSample={handleLoadSample}
         />
       ) : (
         <div className="space-y-6">

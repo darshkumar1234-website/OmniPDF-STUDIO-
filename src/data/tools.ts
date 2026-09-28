@@ -11,6 +11,9 @@ export const TOOLS: ToolDef[] = [
     category: 'organize',
     icon: 'Layers',
     badge: 'Popular',
+    seoTitle: 'Merge PDF Online Free – Combine Multiple PDFs | OmniPDF Studio',
+    metaDescription: 'Combine multiple PDF files into one clean document in seconds. Reorder pages freely with zero file size limits, zero watermarks, and 100% browser privacy.',
+    keywords: ['merge pdf', 'combine pdfs', 'join pdf files', 'free pdf merger', 'merge pdf online'],
   },
   {
     id: 'split',
@@ -20,6 +23,9 @@ export const TOOLS: ToolDef[] = [
     description: 'Extract ranges (e.g. 1-3, 5), separate every page into individual files, or split into custom parts.',
     category: 'organize',
     icon: 'Scissors',
+    seoTitle: 'Split PDF Online Free – Extract Pages & Split Files | OmniPDF Studio',
+    metaDescription: 'Extract pages, split PDF by custom ranges, or burst into individual files. 100% free, private client-side processing with zero watermarks and no limits.',
+    keywords: ['split pdf', 'extract pdf pages', 'separate pdf', 'split pdf online', 'cut pdf pages'],
   },
   {
     id: 'organize',
@@ -30,6 +36,9 @@ export const TOOLS: ToolDef[] = [
     category: 'organize',
     icon: 'Grid3X3',
     badge: 'Visual',
+    seoTitle: 'Organize & Rotate PDF Pages Online Free | OmniPDF Studio',
+    metaDescription: 'Reorder, rotate, and delete PDF pages with an interactive visual page grid. 100% free client-side processing with instant download and zero watermarks.',
+    keywords: ['organize pdf', 'rotate pdf', 'reorder pdf pages', 'delete pdf pages', 'rearrange pdf'],
   },
   {
     id: 'page-numbers',
@@ -39,6 +48,9 @@ export const TOOLS: ToolDef[] = [
     description: 'Number your document pages with custom positioning (top, bottom, center, corners) and styling.',
     category: 'organize',
     icon: 'Hash',
+    seoTitle: 'Add Page Numbers to PDF Online Free | OmniPDF Studio',
+    metaDescription: 'Add custom page numbers, headers, and footers to your PDF documents. Select custom positions, formats, and fonts with instant watermark-free export.',
+    keywords: ['add page numbers to pdf', 'number pdf pages', 'pdf pagination', 'pdf page numbers online', 'insert page numbers'],
   },
   {
     id: 'compress',
@@ -48,6 +60,9 @@ export const TOOLS: ToolDef[] = [
     description: 'Optimize PDF structure and clean unnecessary streams for fast email attachments and uploads.',
     category: 'organize',
     icon: 'Minimize2',
+    seoTitle: 'Compress PDF Online – Reduce PDF File Size | OmniPDF Studio',
+    metaDescription: 'Shrink and optimize PDF file sizes for fast email attachments and uploads without losing visual clarity. 100% private in-browser compression.',
+    keywords: ['compress pdf', 'reduce pdf size', 'shrink pdf', 'pdf compressor online free', 'optimize pdf'],
   },
 
   // Convert
@@ -60,6 +75,9 @@ export const TOOLS: ToolDef[] = [
     category: 'convert',
     icon: 'Image',
     badge: 'High Res',
+    seoTitle: 'Convert JPG & PNG Images to PDF Online Free | OmniPDF Studio',
+    metaDescription: 'Convert JPG, PNG, and WebP images into clean, formatted PDF documents. Custom page margins, orientations, and instant download with zero watermarks.',
+    keywords: ['jpg to pdf', 'png to pdf', 'images to pdf', 'convert photos to pdf', 'image to pdf converter'],
   },
   {
     id: 'pdf-to-images',
@@ -69,6 +87,9 @@ export const TOOLS: ToolDef[] = [
     description: 'Render every PDF page into high-resolution images. Download individually or 1-click batch ZIP.',
     category: 'convert',
     icon: 'FileImage',
+    seoTitle: 'Convert PDF to Images (PNG & JPG) High Res | OmniPDF Studio',
+    metaDescription: 'Convert PDF pages into crystal-clear PNG and JPG images. Download single pages or 1-click batch ZIP archives with full resolution and privacy.',
+    keywords: ['pdf to image', 'pdf to png', 'pdf to jpg', 'export pdf pages as images', 'convert pdf to pictures'],
   },
   {
     id: 'pdf-to-text',
@@ -78,6 +99,9 @@ export const TOOLS: ToolDef[] = [
     description: 'Quickly extract text from native PDFs with zero latency, ready to copy or download as TXT/MD.',
     category: 'convert',
     icon: 'FileText',
+    seoTitle: 'Extract Text from PDF Online Free (TXT & MD) | OmniPDF Studio',
+    metaDescription: 'Extract full text from PDF documents with page numbers and word counts. Copy to clipboard or download as TXT and Markdown with zero latency.',
+    keywords: ['pdf to text', 'extract text from pdf', 'pdf to txt', 'copy text from pdf', 'pdf text extractor'],
   },
   {
     id: 'text-to-pdf',
@@ -87,6 +111,9 @@ export const TOOLS: ToolDef[] = [
     description: 'Write or paste notes and generate a styled, paginated PDF document with auto-wrapping.',
     category: 'convert',
     icon: 'PenTool',
+    seoTitle: 'Convert Text & Notes to Formatted PDF Free | OmniPDF Studio',
+    metaDescription: 'Convert plain text, notes, and meeting minutes into beautifully formatted, paginated PDF files with custom typography and instant download.',
+    keywords: ['text to pdf', 'txt to pdf', 'convert notes to pdf', 'notepad to pdf', 'create pdf from text'],
   },
 
   // Annotate & Edit
@@ -99,6 +126,9 @@ export const TOOLS: ToolDef[] = [
     category: 'edit',
     icon: 'Signature',
     badge: 'Interactive',
+    seoTitle: 'Annotate & Sign PDF Online Free – Draw & Type | OmniPDF Studio',
+    metaDescription: 'Draw e-signatures, add custom text annotations, place stamps, and highlight PDF documents online without printing or scanning. 100% free and private.',
+    keywords: ['sign pdf', 'annotate pdf', 'draw signature on pdf', 'fill and sign pdf', 'edit pdf online free'],
   },
 
   // AI & OCR
@@ -112,6 +142,9 @@ export const TOOLS: ToolDef[] = [
     icon: 'ScanText',
     badge: 'AI Powered',
     isAi: true,
+    seoTitle: 'AI OCR PDF Scanner – Extract Scanned Text & Handwriting | OmniPDF Studio',
+    metaDescription: 'Digitize scanned PDFs, photos, and handwriting into editable text and tables with Gemini 3.8 Flash AI OCR. Fast, accurate, and watermark-free exports.',
+    keywords: ['ai ocr', 'pdf ocr online', 'scanned pdf to text', 'handwriting to text pdf', 'gemini ocr'],
   },
   {
     id: 'ai-chat',
@@ -123,6 +156,9 @@ export const TOOLS: ToolDef[] = [
     icon: 'MessageSquareText',
     badge: 'Gemini 3.8',
     isAi: true,
+    seoTitle: 'Chat with PDF AI – Ask Document Questions & Citations | OmniPDF Studio',
+    metaDescription: 'Ask questions and get instant cited answers from your PDF documents powered by Gemini 3.8 Flash AI. Deep document comprehension with 100% privacy.',
+    keywords: ['chat with pdf', 'talk to pdf', 'ai document assistant', 'ask pdf questions', 'chatpdf free'],
   },
   {
     id: 'ai-summarize',
@@ -134,6 +170,9 @@ export const TOOLS: ToolDef[] = [
     icon: 'Sparkles',
     badge: 'AI Powered',
     isAi: true,
+    seoTitle: 'AI PDF Summarizer – Key Takeaways & Action Items | OmniPDF Studio',
+    metaDescription: 'Generate executive summaries, key takeaways, entities, and strategic action items from long PDF reports using Gemini 3.8 Flash AI. Instant exports.',
+    keywords: ['summarize pdf', 'ai pdf summary', 'pdf executive summary', 'summarize research paper', 'ai document summarizer'],
   },
   {
     id: 'ai-redact',
@@ -145,6 +184,9 @@ export const TOOLS: ToolDef[] = [
     icon: 'ShieldAlert',
     badge: 'Privacy',
     isAi: true,
+    seoTitle: 'AI PDF Redaction – Auto-Blackout Sensitive PII Data | OmniPDF Studio',
+    metaDescription: 'Automatically detect and permanently blackout emails, SSNs, credit card numbers, and confidential PII from PDF documents for GDPR & HIPAA compliance.',
+    keywords: ['redact pdf', 'blackout pdf', 'ai pdf redaction', 'remove pii from pdf', 'sanitize pdf online'],
   },
   {
     id: 'ai-tables',
@@ -156,6 +198,9 @@ export const TOOLS: ToolDef[] = [
     icon: 'Table',
     badge: 'AI Powered',
     isAi: true,
+    seoTitle: 'AI PDF Table Extractor – Export Tables to CSV & JSON | OmniPDF Studio',
+    metaDescription: 'Extract financial, scientific, and tabular data from PDF files directly into clean CSV spreadsheets and structured JSON with Gemini 3.8 Flash AI.',
+    keywords: ['extract tables from pdf', 'pdf table to excel', 'pdf to csv', 'pdf to json table', 'ai table extractor'],
   },
   {
     id: 'ai-translate',
@@ -167,6 +212,9 @@ export const TOOLS: ToolDef[] = [
     icon: 'Languages',
     badge: 'Multilingual',
     isAi: true,
+    seoTitle: 'Translate PDF Online Free – 25+ Global Languages | OmniPDF Studio',
+    metaDescription: 'Translate PDF documents into Spanish, French, German, Japanese, Chinese, Arabic and 20+ languages while preserving structural layout and tables.',
+    keywords: ['translate pdf', 'pdf document translator', 'free pdf translation', 'translate pdf online', 'multilingual pdf translate'],
   },
   {
     id: 'ai-study',
@@ -178,5 +226,8 @@ export const TOOLS: ToolDef[] = [
     icon: 'GraduationCap',
     badge: 'Interactive',
     isAi: true,
+    seoTitle: 'AI PDF Flashcards & Quiz Generator for Students | OmniPDF Studio',
+    metaDescription: 'Transform textbook chapters and research papers into interactive flip flashcards, scored practice quizzes, and key revision notes with Gemini 3.8 Flash AI.',
+    keywords: ['pdf to flashcards', 'ai quiz generator', 'pdf study guide', 'generate flashcards from pdf', 'study tool ai'],
   },
 ];

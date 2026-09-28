@@ -9,8 +9,11 @@ if (typeof window !== 'undefined') {
  * Load a PDF document from Uint8Array
  */
 export async function loadPdfDocument(data: Uint8Array) {
+  // Clone data buffer so worker transfer never detaches/neuters the caller's ArrayBuffer
+  const clone = new Uint8Array(data.byteLength);
+  clone.set(data);
   const loadingTask = pdfjsLib.getDocument({
-    data,
+    data: clone,
     useWorkerFetch: false,
     isEvalSupported: false,
     useSystemFonts: true,
@@ -63,6 +66,30 @@ export async function renderPageThumbnail(
 
   const canvas = await renderPageToCanvas(pdfDoc, pageNum, scale, rotationOffset);
   return canvas.toDataURL('image/jpeg', 0.85);
+}
+
+/**
+ * Generate a thumbnail data URL and page count directly from a File, Blob, Uint8Array or ArrayBuffer
+ */
+export async function generatePdfThumbnail(
+  fileOrBytes: File | Blob | Uint8Array | ArrayBuffer,
+  pageNum: number = 1,
+  maxDimension: number = 360
+): Promise<{ thumbnailUrl: string; numPages: number }> {
+  let bytes: Uint8Array;
+  if (fileOrBytes instanceof Uint8Array) {
+    bytes = fileOrBytes;
+  } else if (fileOrBytes instanceof ArrayBuffer) {
+    bytes = new Uint8Array(fileOrBytes);
+  } else {
+    const buffer = await fileOrBytes.arrayBuffer();
+    bytes = new Uint8Array(buffer);
+  }
+
+  const doc = await loadPdfDocument(bytes);
+  const targetPage = Math.min(Math.max(1, pageNum), doc.numPages);
+  const thumbnailUrl = await renderPageThumbnail(doc, targetPage, maxDimension);
+  return { thumbnailUrl, numPages: doc.numPages };
 }
 
 /**

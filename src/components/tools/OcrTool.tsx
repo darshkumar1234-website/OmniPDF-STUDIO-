@@ -170,7 +170,7 @@ export const OcrTool: React.FC<OcrToolProps> = ({ onSelectSample }) => {
       <div className="mb-6">
         <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/25 text-cyan-300 text-xs font-semibold mb-2">
           <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-          Powered by Gemini 3.8 Flash OCR Engine
+          Powered by Omni AI OCR Engine
         </div>
         <h2 className="text-2xl font-bold text-white mb-1">Advanced Multi-Language AI OCR</h2>
         <p className="text-xs text-slate-400">
@@ -313,7 +313,7 @@ export const OcrTool: React.FC<OcrToolProps> = ({ onSelectSample }) => {
               <div className="text-xs font-semibold text-slate-400 mb-3 flex items-center justify-between">
                 <span className="flex items-center gap-1.5 text-sky-400">
                   <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                  Gemini Multi-Language OCR ({detectedLanguage || selectedLanguage})
+                  Omni AI Multi-Language OCR ({detectedLanguage || selectedLanguage})
                 </span>
                 {extractedText && (
                   <span className="text-[11px] text-slate-400">
@@ -326,7 +326,7 @@ export const OcrTool: React.FC<OcrToolProps> = ({ onSelectSample }) => {
                 <div className="flex-1 flex flex-col items-center justify-center py-20 text-center">
                   <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-3" />
                   <p className="text-sm font-semibold text-white mb-1">
-                    Digitizing Document with Gemini 3.8 Flash...
+                    Digitizing Document with Omni AI...
                   </p>
                   <p className="text-xs text-slate-400 max-w-xs">
                     Recognizing characters, punctuation, tables, and script formatting in{' '}

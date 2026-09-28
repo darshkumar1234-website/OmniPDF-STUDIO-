@@ -72,7 +72,7 @@ export const AiTablesTool: React.FC<AiTablesToolProps> = ({ onSelectSample }) =>
       <div className="mb-6">
         <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-cyan-300 text-xs font-semibold mb-2">
           <Sparkles className="w-3.5 h-3.5" />
-          Powered by Gemini 3.8 Flash
+          Powered by Omni AI
         </div>
         <h2 className="text-2xl font-bold text-white mb-1">AI Table & Data Extractor</h2>
         <p className="text-xs text-slate-400">
@@ -91,7 +91,7 @@ export const AiTablesTool: React.FC<AiTablesToolProps> = ({ onSelectSample }) =>
       ) : isProcessing ? (
         <div className="p-16 text-center">
           <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-3" />
-          <p className="text-sm font-semibold text-white">Extracting tables with Gemini...</p>
+          <p className="text-sm font-semibold text-white">Extracting tables with Omni AI...</p>
           <p className="text-xs text-slate-400">Parsing column boundaries, numbers, and headers.</p>
         </div>
       ) : (
