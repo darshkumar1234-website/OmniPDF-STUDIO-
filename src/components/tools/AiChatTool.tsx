@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageSquareText, Send, Sparkles, Loader2, FileText, Bot, User, Trash2 } from 'lucide-react';
+import { MessageSquareText, Send, Sparkles, Loader2, FileText, Bot, User, Trash2, RotateCcw, AlertCircle } from 'lucide-react';
 import { requestChat } from '../../services/aiService';
 import { extractTextFromPDF } from '../../services/pdfRenderer';
 import { Dropzone } from '../Dropzone';
@@ -13,6 +13,8 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
+  isError?: boolean;
+  failedQuery?: string;
 }
 
 export const AiChatTool: React.FC<AiChatToolProps> = ({ onSelectSample }) => {
@@ -102,8 +104,10 @@ export const AiChatTool: React.FC<AiChatToolProps> = ({ onSelectSample }) => {
         {
           id: `${Date.now()}_err`,
           role: 'assistant',
-          content: `Error retrieving response: ${err.message}`,
+          content: err.message || 'Unable to retrieve response from AI service.',
           timestamp: Date.now(),
+          isError: true,
+          failedQuery: query,
         },
       ]);
     } finally {
@@ -184,8 +188,14 @@ export const AiChatTool: React.FC<AiChatToolProps> = ({ onSelectSample }) => {
                 }`}
               >
                 {msg.role === 'assistant' && (
-                  <div className="w-7 h-7 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-cyan-300 shrink-0 mt-0.5">
-                    <Bot className="w-4 h-4" />
+                  <div
+                    className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                      msg.isError
+                        ? 'bg-amber-500/20 border border-amber-500/30 text-amber-300'
+                        : 'bg-blue-500/20 border border-blue-500/30 text-cyan-300'
+                    }`}
+                  >
+                    {msg.isError ? <AlertCircle className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
                   </div>
                 )}
 
@@ -193,10 +203,26 @@ export const AiChatTool: React.FC<AiChatToolProps> = ({ onSelectSample }) => {
                   className={`max-w-[85%] rounded-2xl p-3.5 ${
                     msg.role === 'user'
                       ? 'bg-blue-600 text-white rounded-tr-xs'
+                      : msg.isError
+                      ? 'bg-amber-950/20 border border-amber-800/40 text-amber-200 rounded-tl-xs space-y-2.5'
                       : 'bg-slate-950 border border-slate-800 text-slate-200 rounded-tl-xs whitespace-pre-wrap'
                   }`}
                 >
-                  {msg.content}
+                  <div>{msg.content}</div>
+                  {msg.isError && msg.failedQuery && (
+                    <div className="pt-2 border-t border-amber-800/30 flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleSend(msg.failedQuery)}
+                        disabled={isThinking}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-[11px] font-semibold transition-colors cursor-pointer border border-amber-500/30 disabled:opacity-50"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                        Retry Query
+                      </button>
+                      <span className="text-[10px] text-amber-400/70">Automatic multi-engine fallback enabled</span>
+                    </div>
+                  )}
                 </div>
 
                 {msg.role === 'user' && (

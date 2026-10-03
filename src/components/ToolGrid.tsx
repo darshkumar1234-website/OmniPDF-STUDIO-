@@ -36,7 +36,7 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
             </h1>
             <p className="text-sm sm:text-base text-slate-300 mb-6 leading-relaxed">
               Split, merge, reorganize, convert, sign, and compress documents locally in your browser.
-              Unlock next-generation AI OCR text digitization, document summaries, and Q&A powered by Gemini.
+              Unlock next-generation AI OCR text digitization, document summaries, and Q&A powered by Omni AI.
             </p>
 
             <div className="flex flex-wrap items-center gap-4 text-xs text-slate-400">
@@ -52,7 +52,7 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
               <span className="text-slate-700">·</span>
               <div className="flex items-center gap-1.5 text-slate-300">
                 <Sparkles className="w-4 h-4 text-cyan-400" />
-                <span>Gemini 3.8 Flash Intelligence</span>
+                <span>Omni AI Intelligence</span>
               </div>
             </div>
           </div>

@@ -16,6 +16,8 @@ import {
   TrendingUp,
   Award,
   Layers,
+  RefreshCw,
+  AlertCircle,
 } from 'lucide-react';
 import { requestDeepSummary } from '../../services/aiService';
 import { extractTextFromPDF } from '../../services/pdfRenderer';
@@ -142,7 +144,7 @@ ${result.sentiment.keyPhrases.map((p) => `  * "${p}"`).join('\n')}
       <div className="mb-6">
         <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/25 text-cyan-300 text-xs font-semibold mb-2">
           <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-          Powered by Gemini 3.8 Flash
+          Powered by Omni AI
         </div>
         <h2 className="text-2xl font-bold text-white mb-1">AI PDF Summarizer & Intelligence</h2>
         <p className="text-xs text-slate-400">
@@ -213,8 +215,22 @@ ${result.sentiment.keyPhrases.map((p) => `  * "${p}"`).join('\n')}
           )}
 
           {errorMessage && (
-            <div className="p-3 rounded-xl bg-red-950/40 border border-red-800/40 text-red-300 text-xs flex items-center gap-2">
-              <span>{errorMessage}</span>
+            <div className="p-3.5 rounded-xl bg-amber-950/30 border border-amber-800/40 text-amber-200 text-xs flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
+              {docText && file && (
+                <button
+                  type="button"
+                  onClick={() => generateAnalysis(docText, file.name)}
+                  disabled={isSummarizing}
+                  className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/30 font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Retry Analysis
+                </button>
+              )}
             </div>
           )}
 
@@ -252,7 +268,7 @@ ${result.sentiment.keyPhrases.map((p) => `  * "${p}"`).join('\n')}
               <div className="py-20 text-center flex flex-col items-center">
                 <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-3" />
                 <p className="text-sm font-semibold text-white mb-1">
-                  Synthesizing Document Intelligence with Gemini 3.8 Flash...
+                  Synthesizing Document Intelligence with Omni AI...
                 </p>
                 <p className="text-xs text-slate-400 max-w-sm">
                   Extracting key entities, topic relevance weights, core conclusions, and evaluating tonal sentiment.

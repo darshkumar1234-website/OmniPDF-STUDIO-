@@ -99,7 +99,7 @@ export default function App() {
                     'merge pdf',
                     'split pdf',
                     'ai ocr',
-                    'gemini pdf',
+                    'omni ai pdf',
                     'convert pdf online',
                   ]}
                   isAi
@@ -289,7 +289,7 @@ export default function App() {
             <span>·</span>
             <div className="flex items-center gap-1.5">
               <Sparkles className="w-4 h-4 text-cyan-400" />
-              <span>Gemini 3.8 Flash OCR</span>
+              <span>Omni AI OCR</span>
             </div>
             <span>·</span>
             <div className="flex items-center gap-1.5">

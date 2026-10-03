@@ -97,7 +97,7 @@ export const SeoHead: React.FC<SeoHeadProps> = ({
         'Zero Watermarks',
         'Direct Instant Downloads',
         'Unlimited File Sizes',
-        ...(isAi ? ['Powered by Gemini 3.8 Flash AI'] : []),
+        ...(isAi ? ['Powered by Omni AI'] : []),
       ],
       creator: {
         '@type': 'Organization',

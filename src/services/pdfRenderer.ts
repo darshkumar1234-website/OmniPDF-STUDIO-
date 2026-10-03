@@ -76,6 +76,14 @@ export async function generatePdfThumbnail(
   pageNum: number = 1,
   maxDimension: number = 360
 ): Promise<{ thumbnailUrl: string; numPages: number }> {
+  // Handle direct image files (e.g. in Image-to-PDF tool)
+  if (fileOrBytes instanceof File || fileOrBytes instanceof Blob) {
+    if (fileOrBytes.type.startsWith('image/')) {
+      const url = URL.createObjectURL(fileOrBytes);
+      return { thumbnailUrl: url, numPages: 1 };
+    }
+  }
+
   let bytes: Uint8Array;
   if (fileOrBytes instanceof Uint8Array) {
     bytes = fileOrBytes;
@@ -84,6 +92,17 @@ export async function generatePdfThumbnail(
   } else {
     const buffer = await fileOrBytes.arrayBuffer();
     bytes = new Uint8Array(buffer);
+  }
+
+  // Detect image magic bytes
+  if (
+    (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) ||
+    (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) ||
+    (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46)
+  ) {
+    const blob = new Blob([bytes as unknown as BlobPart]);
+    const url = URL.createObjectURL(blob);
+    return { thumbnailUrl: url, numPages: 1 };
   }
 
   const doc = await loadPdfDocument(bytes);

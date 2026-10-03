@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { ShieldAlert, CheckSquare, Square, Download, Loader2, CheckCircle2, FileText, Sparkles, Plus, AlertCircle } from 'lucide-react';
+import { ShieldAlert, CheckSquare, Square, Download, Loader2, CheckCircle2, FileText, Sparkles, Plus, AlertCircle, RefreshCw } from 'lucide-react';
 import { requestDetectPII } from '../../services/aiService';
+import { fallbackPIIDetection } from '../../services/aiFallbacks';
 import { extractTextFromPDF } from '../../services/pdfRenderer';
 import { convertTextToPDF, downloadFile } from '../../services/pdfOperations';
 import { DetectedPII } from '../../types';
@@ -35,8 +36,14 @@ export const AiRedactTool: React.FC<AiRedactToolProps> = ({ onSelectSample }) =>
     try {
       const { fullText } = await extractTextFromPDF(bytes);
       setDocText(fullText);
-      const items = await requestDetectPII(fullText);
-      setDetectedItems(items);
+      try {
+        const items = await requestDetectPII(fullText);
+        setDetectedItems(items);
+      } catch (apiErr: any) {
+        console.warn('AI PII detection API temporarily unavailable, using client-side security scanner:', apiErr);
+        const fallbackItems = fallbackPIIDetection(fullText);
+        setDetectedItems(fallbackItems);
+      }
     } catch (err: any) {
       setErrorMessage(`Scanning failed: ${err.message}`);
     } finally {

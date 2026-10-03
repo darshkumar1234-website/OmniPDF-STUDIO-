@@ -13,6 +13,8 @@ import {
   Cloud,
   CheckCircle2,
   FileCheck,
+  RefreshCw,
+  AlertCircle,
 } from 'lucide-react';
 import { requestOCR } from '../../services/aiService';
 import { loadPdfDocument, renderPageToCanvas } from '../../services/pdfRenderer';
@@ -286,8 +288,22 @@ export const OcrTool: React.FC<OcrToolProps> = ({ onSelectSample }) => {
           )}
 
           {errorMessage && (
-            <div className="p-3 rounded-xl bg-red-950/40 border border-red-800/40 text-red-300 text-xs flex items-center gap-2">
-              <span>{errorMessage}</span>
+            <div className="p-3.5 rounded-xl bg-amber-950/30 border border-amber-800/40 text-amber-200 text-xs flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
+              {sourceImage && (
+                <button
+                  type="button"
+                  onClick={() => triggerOcr(sourceImage, fileName, selectedLanguage)}
+                  disabled={isProcessing}
+                  className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/30 font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Retry OCR
+                </button>
+              )}
             </div>
           )}
 

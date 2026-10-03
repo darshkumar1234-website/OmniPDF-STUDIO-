@@ -4,6 +4,15 @@ import { GoogleGenAI, Type } from '@google/genai';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
+import {
+  formatAiErrorMessage,
+  fallbackPIIDetection,
+  fallbackDeepSummary,
+  fallbackChat,
+  fallbackExtractTables,
+  fallbackStudyTools,
+  fallbackSummary,
+} from './src/services/aiFallbacks';
 
 dotenv.config();
 
@@ -33,8 +42,72 @@ app.get('/api/health', (req: Request, res: Response) => {
   });
 });
 
+/**
+ * Determine if an error is temporary or overload-related and can be retried
+ */
+function isRetryableError(error: any): boolean {
+  if (!error) return false;
+  const msg = typeof error === 'string' ? error : error.message || String(error);
+  return (
+    msg.includes('503') ||
+    msg.includes('429') ||
+    msg.includes('high demand') ||
+    msg.includes('UNAVAILABLE') ||
+    msg.includes('overloaded') ||
+    msg.includes('RESOURCE_EXHAUSTED') ||
+    msg.includes('rate limit') ||
+    msg.includes('try again later') ||
+    msg.includes('fetch failed') ||
+    msg.includes('ECONNRESET') ||
+    msg.includes('ETIMEDOUT')
+  );
+}
+
+/**
+ * Call Gemini with automated backoff retry and alternate model fallbacks
+ * Sequence: gemini-3.8-flash -> gemini-flash-latest -> gemini-3.1-flash-lite
+ */
+async function callGeminiWithRetry(options: {
+  contents: any;
+  config?: any;
+  primaryModel?: string;
+}): Promise<any> {
+  const models = [
+    options.primaryModel || 'gemini-3.8-flash',
+    'gemini-flash-latest',
+    'gemini-3.1-flash-lite',
+  ];
+
+  let lastError: any = null;
+
+  for (const model of models) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const response = await ai.models.generateContent({
+          model,
+          contents: options.contents,
+          config: options.config,
+        });
+        return response;
+      } catch (err: any) {
+        lastError = err;
+        console.warn(`[AI Engine] Attempt ${attempt + 1} with ${model} encountered:`, err?.message || err);
+        if (!isRetryableError(err)) {
+          // If fatal invalid parameter, don't repeat this model
+          break;
+        }
+        // Exponential backoff with random jitter
+        const delay = (attempt + 1) * 800 + Math.random() * 400;
+        await new Promise((r) => setTimeout(r, delay));
+      }
+    }
+  }
+
+  throw lastError;
+}
+
 // 1. Advanced Multi-Language OCR Endpoint
-app.post('/api/gemini/ocr', async (req: Request, res: Response) => {
+app.post(['/api/ai/ocr', '/api/gemini/ocr'], async (req: Request, res: Response) => {
   try {
     const { imageBase64, mimeType = 'image/png', language = 'auto', enhanceFormatting = true } = req.body;
 
@@ -60,8 +133,7 @@ Instructions:
 - Do NOT output conversational filler like "Here is the transcription:".
 - Only output the exact extracted document content.`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
+    const response = await callGeminiWithRetry({
       contents: {
         parts: [
           {
@@ -84,20 +156,19 @@ Instructions:
     });
   } catch (error: any) {
     console.error('OCR Error:', error);
-    return res.status(500).json({ error: error.message || 'Failed to perform OCR extraction' });
+    return res.status(500).json({ error: formatAiErrorMessage(error) });
   }
 });
 
 // 1b. Deep PDF Summarizer with Entities, Topics, Insights, and Sentiment Analysis
-app.post('/api/gemini/summarize-deep', async (req: Request, res: Response) => {
-  try {
-    const { text } = req.body;
+app.post(['/api/ai/summarize-deep', '/api/gemini/summarize-deep'], async (req: Request, res: Response) => {
+  const { text } = req.body;
 
-    if (!text || text.trim().length === 0) {
-      return res.status(400).json({ error: 'Document text is required for analysis' });
-    }
+  if (!text || text.trim().length === 0) {
+    return res.status(400).json({ error: 'Document text is required for analysis' });
+  }
 
-    const prompt = `Analyze this PDF document and perform a comprehensive document intelligence breakdown:
+  const prompt = `Analyze this PDF document and perform a comprehensive document intelligence breakdown:
 1. "summary": Provide a concise, structured executive summary covering the main purpose, essential background, and outcomes.
 2. "entities": Extract all key named entities (Organizations, People, Locations, Dates/Deadlines, Financial figures/Amounts, Laws/Standards).
 3. "topics": Identify the top 4-8 core themes/topics with a relevance percentage (0-100) and brief description.
@@ -111,8 +182,8 @@ app.post('/api/gemini/summarize-deep', async (req: Request, res: Response) => {
 Document Text (excerpt or full):
 ${text.slice(0, 60000)}`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
+  try {
+    const response = await callGeminiWithRetry({
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
@@ -138,7 +209,7 @@ ${text.slice(0, 60000)}`;
                 type: Type.OBJECT,
                 properties: {
                   topic: { type: Type.STRING },
-                  relevance: { type: Type.NUMBER, description: 'Percentage 0-100' },
+                  relevance: { type: Type.INTEGER, description: 'Percentage 0-100' },
                   description: { type: Type.STRING },
                 },
                 required: ['topic', 'relevance', 'description'],
@@ -151,20 +222,20 @@ ${text.slice(0, 60000)}`;
                 properties: {
                   title: { type: Type.STRING },
                   takeaway: { type: Type.STRING },
-                  category: { type: Type.STRING },
                 },
-                required: ['title', 'takeaway', 'category'],
+                required: ['title', 'takeaway'],
               },
             },
             sentiment: {
               type: Type.OBJECT,
               properties: {
-                overall: { type: Type.STRING },
-                score: { type: Type.NUMBER },
-                analysis: { type: Type.STRING },
+                overall: { type: Type.STRING, description: 'positive, neutral, negative, cautious, urgent, constructive' },
+                score: { type: Type.NUMBER, description: 'Score between -1.0 and 1.0' },
+                analysis: { type: Type.STRING, description: 'Tonal and perspective analysis' },
                 keyPhrases: {
                   type: Type.ARRAY,
                   items: { type: Type.STRING },
+                  description: 'Key excerpts demonstrating sentiment',
                 },
               },
               required: ['overall', 'score', 'analysis', 'keyPhrases'],
@@ -172,59 +243,63 @@ ${text.slice(0, 60000)}`;
           },
           required: ['summary', 'entities', 'topics', 'insights', 'sentiment'],
         },
-        temperature: 0.15,
       },
     });
 
     const parsed = JSON.parse(response.text?.trim() || '{}');
     return res.json(parsed);
   } catch (error: any) {
-    console.error('Deep Summarization Error:', error);
-    return res.status(500).json({ error: error.message || 'Failed to generate deep summary analysis' });
+    console.warn('Deep Summarization API unavailable, engaging resilient document intelligence fallback:', error?.message);
+    try {
+      const fallbackResult = fallbackDeepSummary(text);
+      return res.json(fallbackResult);
+    } catch (fallbackError: any) {
+      console.error('Deep Summarization Fallback Error:', fallbackError);
+      return res.status(500).json({ error: formatAiErrorMessage(error) });
+    }
   }
 });
 
 // 2. Summarize Document
-app.post('/api/gemini/summarize', async (req: Request, res: Response) => {
-  try {
-    const { text, imageBase64, mimeType = 'image/png', format = 'executive' } = req.body;
+app.post(['/api/ai/summarize', '/api/gemini/summarize'], async (req: Request, res: Response) => {
+  const { text, imageBase64, mimeType = 'image/png', format = 'executive' } = req.body;
 
-    if (!text && !imageBase64) {
-      return res.status(400).json({ error: 'Either text or imageBase64 must be provided' });
-    }
+  if (!text && !imageBase64) {
+    return res.status(400).json({ error: 'Either text or imageBase64 must be provided' });
+  }
 
-    const parts: any[] = [];
-    if (imageBase64) {
-      const cleanBase64 = imageBase64.replace(/^data:[^;]+;base64,/, '');
-      parts.push({
-        inlineData: {
-          mimeType,
-          data: cleanBase64,
-        },
-      });
-    }
+  const parts: any[] = [];
+  if (imageBase64) {
+    const cleanBase64 = imageBase64.replace(/^data:[^;]+;base64,/, '');
+    parts.push({
+      inlineData: {
+        mimeType,
+        data: cleanBase64,
+      },
+    });
+  }
 
-    let formatPrompt = '';
-    if (format === 'bullet_points') {
-      formatPrompt = 'Provide a structured bullet-point summary highlighting critical facts, numbers, and takeaways.';
-    } else if (format === 'brief') {
-      formatPrompt = 'Provide an ultra-concise 3-paragraph summary covering Background, Core Content, and Conclusion.';
-    } else if (format === 'action_items') {
-      formatPrompt = 'Extract all actionable tasks, next steps, deadlines, and responsibilities mentioned or implied.';
-    } else {
-      formatPrompt = 'Provide a comprehensive Executive Summary including Overview, Key Findings, Critical Metrics/Data, and Key Implications.';
-    }
+  let formatPrompt = '';
+  if (format === 'bullet_points') {
+    formatPrompt = 'Provide a structured bullet-point summary highlighting critical facts, numbers, and takeaways.';
+  } else if (format === 'brief') {
+    formatPrompt = 'Provide an ultra-concise 3-paragraph summary covering Background, Core Content, and Conclusion.';
+  } else if (format === 'action_items') {
+    formatPrompt = 'Extract all actionable tasks, next steps, deadlines, and responsibilities mentioned or implied.';
+  } else {
+    formatPrompt = 'Provide a comprehensive Executive Summary including Overview, Key Findings, Critical Metrics/Data, and Key Implications.';
+  }
 
-    const promptText = `Analyze the provided document content and produce a high-value summary.
+  const promptText = `Analyze the provided document content and produce a high-value summary.
 ${formatPrompt}
 Format cleanly in Markdown with bold headers and clear spacing.
 Document text:
 ${text || '(refer to attached document image)'}`;
 
-    parts.push({ text: promptText });
+  parts.push({ text: promptText });
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
+  try {
+    const response = await callGeminiWithRetry({
       contents: { parts },
       config: {
         temperature: 0.2,
@@ -233,73 +308,100 @@ ${text || '(refer to attached document image)'}`;
 
     return res.json({ summary: response.text || '' });
   } catch (error: any) {
-    console.error('Summarize Error:', error);
-    return res.status(500).json({ error: error.message || 'Failed to summarize document' });
+    console.warn('Summarize API unavailable, engaging heuristic summary fallback:', error?.message);
+    if (text) {
+      try {
+        return res.json({ summary: fallbackSummary(text, format) });
+      } catch (fallbackErr: any) {
+        console.error('Summary fallback error:', fallbackErr);
+      }
+    }
+    return res.status(500).json({ error: formatAiErrorMessage(error) });
   }
 });
 
 // 3. Chat with Document
-app.post('/api/gemini/chat', async (req: Request, res: Response) => {
-  try {
-    const { documentText, history = [], query } = req.body;
+app.post(['/api/ai/chat', '/api/gemini/chat'], async (req: Request, res: Response) => {
+  const { documentText, history = [], query } = req.body;
 
-    if (!query) {
-      return res.status(400).json({ error: 'Query is required' });
-    }
+  if (!query) {
+    return res.status(400).json({ error: 'Query is required' });
+  }
 
-    const systemInstruction = `You are OmniPDF Document Assistant, an expert AI analyst who answers questions strictly based on the provided document context.
-- Always quote or cite specific sections or page references when relevant.
-- If the document does not contain the answer, say "Based on the provided document, this information is not mentioned" rather than hallucinating.
-- Format responses in clean Markdown with clear headings and bullet points.`;
+  const systemInstruction = `You are OmniPDF Document Assistant, an expert AI analyst who answers questions strictly based on the provided document context.
+Rules:
+- Be clear, direct, and factual.
+- If referencing facts, numbers, or terms, cite the specific sections or details from the document.
+- If the document does not contain sufficient information to answer the question, clearly state that the document does not mention it, rather than speculating.
+- Format responses nicely in Markdown with bullet points or bold text where appropriate.`;
 
-    const contextPrefix = documentText
-      ? `=== DOCUMENT CONTEXT ===\n${documentText.slice(0, 100000)}\n=== END CONTEXT ===\n\n`
-      : '';
+  const contents: any[] = [];
 
-    // Build chat contents
-    const contents: any[] = [];
-    if (history.length > 0) {
-      // Add previous turns
-      for (const msg of history) {
-        contents.push({
-          role: msg.role === 'assistant' || msg.role === 'model' ? 'model' : 'user',
-          parts: [{ text: msg.content }],
-        });
-      }
-    }
-
-    // Append current turn with context prefix if first message or standalone
+  if (documentText) {
     contents.push({
       role: 'user',
-      parts: [{ text: `${contextPrefix}User Question: ${query}` }],
+      parts: [
+        {
+          text: `DOCUMENT CONTEXT:\n\n${documentText.slice(0, 50000)}\n\nEND OF DOCUMENT CONTEXT.`,
+        },
+      ],
     });
+    contents.push({
+      role: 'model',
+      parts: [
+        {
+          text: 'I have analyzed the document context and will answer all your questions strictly based on this material.',
+        },
+      ],
+    });
+  }
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
+  // Append history
+  for (const msg of history.slice(-6)) {
+    contents.push({
+      role: msg.role === 'user' ? 'user' : 'model',
+      parts: [{ text: msg.content }],
+    });
+  }
+
+  contents.push({
+    role: 'user',
+    parts: [{ text: query }],
+  });
+
+  try {
+    const response = await callGeminiWithRetry({
       contents,
       config: {
         systemInstruction,
-        temperature: 0.3,
+        temperature: 0.2,
       },
     });
 
     return res.json({ reply: response.text || '' });
   } catch (error: any) {
-    console.error('Chat Error:', error);
-    return res.status(500).json({ error: error.message || 'Failed to answer document query' });
+    console.warn('Chat API unavailable, engaging direct document grounding fallback:', error?.message);
+    if (documentText) {
+      try {
+        const fallbackReply = fallbackChat(documentText, query);
+        return res.json({ reply: fallbackReply });
+      } catch (fallbackErr: any) {
+        console.error('Chat fallback error:', fallbackErr);
+      }
+    }
+    return res.status(500).json({ error: formatAiErrorMessage(error) });
   }
 });
 
 // 4. Smart PII Detection for Redaction
-app.post('/api/gemini/detect-pii', async (req: Request, res: Response) => {
-  try {
-    const { text } = req.body;
+app.post(['/api/ai/detect-pii', '/api/gemini/detect-pii'], async (req: Request, res: Response) => {
+  const { text } = req.body;
 
-    if (!text) {
-      return res.status(400).json({ error: 'Document text is required' });
-    }
+  if (!text) {
+    return res.status(400).json({ error: 'Document text is required' });
+  }
 
-    const prompt = `Analyze this document text and identify all sensitive Personally Identifiable Information (PII) and confidential data that should be redacted for privacy and compliance (GDPR/HIPAA/FERPA).
+  const prompt = `Analyze this document text and identify all sensitive Personally Identifiable Information (PII) and confidential data that should be redacted for privacy and compliance (GDPR/HIPAA/FERPA).
 Categories to detect:
 - Individual names
 - Email addresses
@@ -314,8 +416,8 @@ Return a valid JSON array of objects with the exact detected substrings.
 Text:
 ${text.slice(0, 50000)}`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
+  try {
+    const response = await callGeminiWithRetry({
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
@@ -338,29 +440,34 @@ ${text.slice(0, 50000)}`;
     const detectedItems = JSON.parse(jsonText);
     return res.json({ items: detectedItems });
   } catch (error: any) {
-    console.error('PII Detection Error:', error);
-    return res.status(500).json({ error: error.message || 'Failed to detect PII' });
+    console.warn('PII API unavailable, engaging high-precision regex fallback:', error?.message);
+    try {
+      const items = fallbackPIIDetection(text);
+      return res.json({ items });
+    } catch (fallbackErr: any) {
+      console.error('PII fallback error:', fallbackErr);
+      return res.status(500).json({ error: formatAiErrorMessage(error) });
+    }
   }
 });
 
 // 5. Document Translation
-app.post('/api/gemini/translate', async (req: Request, res: Response) => {
-  try {
-    const { text, targetLanguage = 'Spanish' } = req.body;
+app.post(['/api/ai/translate', '/api/gemini/translate'], async (req: Request, res: Response) => {
+  const { text, targetLanguage = 'Spanish' } = req.body;
 
-    if (!text) {
-      return res.status(400).json({ error: 'Text is required' });
-    }
+  if (!text) {
+    return res.status(400).json({ error: 'Text is required' });
+  }
 
-    const prompt = `Translate the following document text into ${targetLanguage}.
+  const prompt = `Translate the following document text into ${targetLanguage}.
 Maintain all markdown formatting, tables, lists, code blocks, technical terms, and paragraph structures unchanged.
 Only provide the translated content without any conversational prologue or notes.
 
 Text to translate:
 ${text.slice(0, 60000)}`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
+  try {
+    const response = await callGeminiWithRetry({
       contents: prompt,
       config: {
         temperature: 0.1,
@@ -370,27 +477,26 @@ ${text.slice(0, 60000)}`;
     return res.json({ translatedText: response.text || '' });
   } catch (error: any) {
     console.error('Translate Error:', error);
-    return res.status(500).json({ error: error.message || 'Failed to translate' });
+    return res.status(500).json({ error: formatAiErrorMessage(error) });
   }
 });
 
 // 6. Extract Tables to CSV & JSON
-app.post('/api/gemini/extract-tables', async (req: Request, res: Response) => {
-  try {
-    const { text, imageBase64, mimeType = 'image/png' } = req.body;
+app.post(['/api/ai/extract-tables', '/api/gemini/extract-tables'], async (req: Request, res: Response) => {
+  const { text, imageBase64, mimeType = 'image/png' } = req.body;
 
-    const parts: any[] = [];
-    if (imageBase64) {
-      const cleanBase64 = imageBase64.replace(/^data:[^;]+;base64,/, '');
-      parts.push({
-        inlineData: {
-          mimeType,
-          data: cleanBase64,
-        },
-      });
-    }
+  const parts: any[] = [];
+  if (imageBase64) {
+    const cleanBase64 = imageBase64.replace(/^data:[^;]+;base64,/, '');
+    parts.push({
+      inlineData: {
+        mimeType,
+        data: cleanBase64,
+      },
+    });
+  }
 
-    const prompt = `Examine this document and extract ALL tables found into structured tables.
+  const prompt = `Examine this document and extract ALL tables found into structured tables.
 For each table:
 1. Provide a title/description.
 2. Provide the table in standard CSV format with comma delimiters and headers.
@@ -400,10 +506,10 @@ If no tables are found, return an empty array.
 Text context:
 ${text || '(refer to image)'}`;
 
-    parts.push({ text: prompt });
+  parts.push({ text: prompt });
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
+  try {
+    const response = await callGeminiWithRetry({
       contents: { parts },
       config: {
         responseMimeType: 'application/json',
@@ -432,21 +538,28 @@ ${text || '(refer to image)'}`;
     const parsed = JSON.parse(response.text?.trim() || '[]');
     return res.json({ tables: parsed });
   } catch (error: any) {
-    console.error('Extract Tables Error:', error);
-    return res.status(500).json({ error: error.message || 'Failed to extract tables' });
+    console.warn('Extract Tables API unavailable, engaging heuristic table parser:', error?.message);
+    if (text) {
+      try {
+        const tables = fallbackExtractTables(text);
+        return res.json({ tables });
+      } catch (fallbackErr: any) {
+        console.error('Table parser fallback error:', fallbackErr);
+      }
+    }
+    return res.status(500).json({ error: formatAiErrorMessage(error) });
   }
 });
 
 // 7. Study Guide, Flashcards & Quiz Generator
-app.post('/api/gemini/study-tools', async (req: Request, res: Response) => {
-  try {
-    const { text, type = 'all' } = req.body;
+app.post(['/api/ai/study-tools', '/api/gemini/study-tools'], async (req: Request, res: Response) => {
+  const { text, type = 'all' } = req.body;
 
-    if (!text) {
-      return res.status(400).json({ error: 'Text is required' });
-    }
+  if (!text) {
+    return res.status(400).json({ error: 'Text is required' });
+  }
 
-    const prompt = `From this educational or professional document, generate comprehensive study materials:
+  const prompt = `From this educational or professional document, generate comprehensive study materials:
 1. "flashcards": 5-10 question/answer flashcards covering key definitions, concepts, and relationships.
 2. "quiz": 5 multiple-choice questions with 4 options, the correct answer index (0-3), and an explanation.
 3. "keyConcepts": 5-8 bulleted high-impact concepts to remember.
@@ -454,8 +567,8 @@ app.post('/api/gemini/study-tools', async (req: Request, res: Response) => {
 Document text:
 ${text.slice(0, 50000)}`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
+  try {
+    const response = await callGeminiWithRetry({
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
@@ -499,8 +612,14 @@ ${text.slice(0, 50000)}`;
     const parsed = JSON.parse(response.text?.trim() || '{}');
     return res.json(parsed);
   } catch (error: any) {
-    console.error('Study Tools Error:', error);
-    return res.status(500).json({ error: error.message || 'Failed to generate study materials' });
+    console.warn('Study Tools API unavailable, engaging heuristic study generator:', error?.message);
+    try {
+      const studyData = fallbackStudyTools(text);
+      return res.json(studyData);
+    } catch (fallbackErr: any) {
+      console.error('Study tools fallback error:', fallbackErr);
+      return res.status(500).json({ error: formatAiErrorMessage(error) });
+    }
   }
 });
 
@@ -547,15 +666,15 @@ const SEO_DATA: Record<string, { title: string; description: string }> = {
   },
   '/ocrpdf': {
     title: 'AI OCR PDF Scanner – Extract Scanned Text & Handwriting | OmniPDF Studio',
-    description: 'Digitize scanned PDFs, photos, and handwriting into editable text and tables with Gemini 3.8 Flash AI OCR. Fast, accurate, and watermark-free exports.',
+    description: 'Digitize scanned PDFs, photos, and handwriting into editable text and tables with Omni AI OCR. Fast, accurate, and watermark-free exports.',
   },
   '/chatpdf': {
     title: 'Chat with PDF AI – Ask Document Questions & Citations | OmniPDF Studio',
-    description: 'Ask questions and get instant cited answers from your PDF documents powered by Gemini 3.8 Flash AI. Deep document comprehension with 100% privacy.',
+    description: 'Ask questions and get instant cited answers from your PDF documents powered by Omni AI. Deep document comprehension with 100% privacy.',
   },
   '/summarizepdf': {
     title: 'AI PDF Summarizer – Key Takeaways & Action Items | OmniPDF Studio',
-    description: 'Generate executive summaries, key takeaways, entities, and strategic action items from long PDF reports using Gemini 3.8 Flash AI. Instant exports.',
+    description: 'Generate executive summaries, key takeaways, entities, and strategic action items from long PDF reports using Omni AI. Instant exports.',
   },
   '/redactpdf': {
     title: 'AI PDF Redaction – Auto-Blackout Sensitive PII Data | OmniPDF Studio',
@@ -563,7 +682,7 @@ const SEO_DATA: Record<string, { title: string; description: string }> = {
   },
   '/tablespdf': {
     title: 'AI PDF Table Extractor – Export Tables to CSV & JSON | OmniPDF Studio',
-    description: 'Extract financial, scientific, and tabular data from PDF files directly into clean CSV spreadsheets and structured JSON with Gemini 3.8 Flash AI.',
+    description: 'Extract financial, scientific, and tabular data from PDF files directly into clean CSV spreadsheets and structured JSON with Omni AI.',
   },
   '/translatepdf': {
     title: 'Translate PDF Online Free – 25+ Global Languages | OmniPDF Studio',
@@ -571,7 +690,7 @@ const SEO_DATA: Record<string, { title: string; description: string }> = {
   },
   '/studypdf': {
     title: 'AI PDF Flashcards & Quiz Generator for Students | OmniPDF Studio',
-    description: 'Transform textbook chapters and research papers into interactive flip flashcards, scored practice quizzes, and key revision notes with Gemini 3.8 Flash AI.',
+    description: 'Transform textbook chapters and research papers into interactive flip flashcards, scored practice quizzes, and key revision notes with Omni AI.',
   },
 };
 

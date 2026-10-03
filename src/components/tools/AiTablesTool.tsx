@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Table, Download, Loader2, FileText, Sparkles, Check, Copy, CheckCircle2 } from 'lucide-react';
+import { Table, Download, Loader2, FileText, Sparkles, Check, Copy, CheckCircle2, RefreshCw, AlertCircle } from 'lucide-react';
 import { requestExtractTables } from '../../services/aiService';
+import { fallbackExtractTables } from '../../services/aiFallbacks';
 import { extractTextFromPDF } from '../../services/pdfRenderer';
 import { downloadFile } from '../../services/pdfOperations';
 import { ExtractedTable } from '../../types';
@@ -32,9 +33,16 @@ export const AiTablesTool: React.FC<AiTablesToolProps> = ({ onSelectSample }) =>
 
     try {
       const { fullText } = await extractTextFromPDF(bytes);
-      const extracted = await requestExtractTables({ text: fullText });
-      setTables(extracted);
-      setActiveTableIndex(0);
+      try {
+        const extracted = await requestExtractTables({ text: fullText });
+        setTables(extracted);
+        setActiveTableIndex(0);
+      } catch (apiErr: any) {
+        console.warn('AI table extraction API unavailable, using heuristic table parser:', apiErr);
+        const fallbackTables = fallbackExtractTables(fullText);
+        setTables(fallbackTables);
+        setActiveTableIndex(0);
+      }
     } catch (err: any) {
       setErrorMessage(`Table extraction failed: ${err.message}`);
     } finally {

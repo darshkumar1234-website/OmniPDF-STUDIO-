@@ -12,6 +12,7 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import { requestStudyTools } from '../../services/aiService';
+import { fallbackStudyTools } from '../../services/aiFallbacks';
 import { extractTextFromPDF } from '../../services/pdfRenderer';
 import { StudyToolsData } from '../../types';
 import { Dropzone } from '../Dropzone';
@@ -49,8 +50,14 @@ export const AiStudyTool: React.FC<AiStudyToolProps> = ({ onSelectSample }) => {
 
     try {
       const { fullText } = await extractTextFromPDF(bytes);
-      const studyData = await requestStudyTools(fullText);
-      setData(studyData);
+      try {
+        const studyData = await requestStudyTools(fullText);
+        setData(studyData);
+      } catch (apiErr: any) {
+        console.warn('AI study tools API temporarily unavailable, using heuristic generator:', apiErr);
+        const fallbackData = fallbackStudyTools(fullText);
+        setData(fallbackData);
+      }
       setCurrentCardIdx(0);
       setIsFlipped(false);
     } catch (err: any) {
@@ -112,7 +119,7 @@ export const AiStudyTool: React.FC<AiStudyToolProps> = ({ onSelectSample }) => {
       ) : isGenerating ? (
         <div className="p-16 text-center">
           <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-3" />
-          <p className="text-sm font-semibold text-white">Generating study materials with Gemini...</p>
+          <p className="text-sm font-semibold text-white">Generating study materials with Omni AI...</p>
           <p className="text-xs text-slate-400">Formulating concept flashcards and practice test questions.</p>
         </div>
       ) : (

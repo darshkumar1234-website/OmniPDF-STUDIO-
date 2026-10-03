@@ -63,7 +63,7 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="hidden md:inline text-slate-700">·</span>
             <span className="hidden md:inline text-cyan-300 flex items-center gap-1">
               <Zap className="w-3 h-3 text-cyan-400" />
-              Gemini 3.8 Flash Document AI
+              Omni AI Document Intelligence
             </span>
           </div>
 
