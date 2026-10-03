@@ -1,4 +1,4 @@
-import { DetectedPII, ExtractedTable, StudyToolsData, DeepSummaryResult } from '../types';
+import type { DetectedPII, ExtractedTable, StudyToolsData, DeepSummaryResult } from '../types/index.ts';
 
 /**
  * Format raw error messages into clean, user-friendly notices
